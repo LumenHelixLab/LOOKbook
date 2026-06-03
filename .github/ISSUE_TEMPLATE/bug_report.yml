@@ -1,0 +1,11 @@
+name: Bug report
+description: Report a reproducible lookBOOK bug.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+    validations:
+      required: true
