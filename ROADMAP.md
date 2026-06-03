@@ -25,3 +25,7 @@
 - [x] CBZ/CBR archive reader
 - [x] Multi-page batch pipeline
 - [x] Archive listing command
+
+## Phase 5 — Interface & Documentation
+- [x] Demo Lab v2 — visual panel overlay, OCR classification, character tracking
+- [x] Professional documentation site — modern docs with CLI reference, pipeline flow, export guide
