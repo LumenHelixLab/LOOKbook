@@ -19,3 +19,4 @@
 - [x] Kling/Pika/Luma prompt export
 - [x] local ComfyUI keyframe workflow
 - [x] FFmpeg assembly helper
+- [x] Remotion compositing export (via ECC integration)

@@ -15,6 +15,7 @@ from .pipeline.veo_export import export_veo
 from .pipeline.kling_export import export_kling
 from .pipeline.comfyui_export import export_comfyui
 from .pipeline.ffmpeg_export import export_ffmpeg
+from .pipeline.remotion_export import export_remotion
 from .lab import install_demo_lab
 
 def cmd_init(args): print(f"Created lookBOOK project: {init_project(args.path, args.name)}")
@@ -82,6 +83,13 @@ def cmd_export_ffmpeg(args):
     print(f"  Script: {result['assembly_script']}")
     print(f"  Output: {result['output_file']}")
     print(f"  Shots: {result['total_shots']}")
+def cmd_export_remotion(args):
+    result=export_remotion(args.project, fps=args.fps)
+    n = result['total_shots']
+    print(f"Generated Remotion project with {n} shots → project/exports/remotion/")
+    print(f"  Duration: {result['total_duration_seconds']:.1f}s @ {result['fps']}fps")
+    print(f"  Resolution: {result['resolution']['width']}x{result['resolution']['height']}")
+    print(f"  Setup: cd project/exports/remotion/ && npm install && npm start")
 
 def build_parser():
     parser=argparse.ArgumentParser(prog='lookbook', description='Open-source book-to-animation compiler.'); sub=parser.add_subparsers(dest='command', required=True)
@@ -103,6 +111,7 @@ def build_parser():
     p=sub.add_parser('export-kling'); p.add_argument('project'); p.set_defaults(func=cmd_export_kling)
     p=sub.add_parser('export-comfyui'); p.add_argument('project'); p.add_argument('--model', default='realisticVisionV51_v51VAE.safetensors'); p.add_argument('--width', type=int, default=1024); p.add_argument('--height', type=int, default=576); p.set_defaults(func=cmd_export_comfyui)
     p=sub.add_parser('export-ffmpeg'); p.add_argument('project'); p.add_argument('--pattern', default='shot_{index:03d}.mp4'); p.add_argument('--output', default='lookbook_assembly.mp4'); p.add_argument('--fps', type=int, default=24); p.set_defaults(func=cmd_export_ffmpeg)
+    p=sub.add_parser('export-remotion'); p.add_argument('project'); p.add_argument('--fps', type=int, default=24); p.set_defaults(func=cmd_export_remotion)
     return parser
 
 def main(argv=None): args=build_parser().parse_args(argv); args.func(args)
