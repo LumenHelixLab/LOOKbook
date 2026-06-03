@@ -20,3 +20,8 @@
 - [x] local ComfyUI keyframe workflow
 - [x] FFmpeg assembly helper
 - [x] Remotion compositing export (via ECC integration)
+
+## Phase 4 — Batch & Archive Processing
+- [x] CBZ/CBR archive reader
+- [x] Multi-page batch pipeline
+- [x] Archive listing command

@@ -16,6 +16,7 @@ from .pipeline.kling_export import export_kling
 from .pipeline.comfyui_export import export_comfyui
 from .pipeline.ffmpeg_export import export_ffmpeg
 from .pipeline.remotion_export import export_remotion
+from .pipeline.archive import list_pages, process_archive
 from .lab import install_demo_lab
 
 def cmd_init(args): print(f"Created lookBOOK project: {init_project(args.path, args.name)}")
@@ -90,6 +91,16 @@ def cmd_export_remotion(args):
     print(f"  Duration: {result['total_duration_seconds']:.1f}s @ {result['fps']}fps")
     print(f"  Resolution: {result['resolution']['width']}x{result['resolution']['height']}")
     print(f"  Setup: cd project/exports/remotion/ && npm install && npm start")
+def cmd_list_pages(args):
+    pages=list_pages(args.archive)
+    print(f"Found {len(pages)} pages in {Path(args.archive).name}:")
+    for p in pages:
+        size_kb = p['size_bytes'] / 1024
+        print(f"  Page {p['page_index']:03d}: {p['filename']} ({size_kb:.0f}KB)")
+def cmd_process_archive(args):
+    result=process_archive(args.archive, args.project, no_cleanup=args.keep)
+    print(f"\nDone. Project: {result['project']}")
+    print(f"  Exports ready in project/exports/*/")
 
 def build_parser():
     parser=argparse.ArgumentParser(prog='lookbook', description='Open-source book-to-animation compiler.'); sub=parser.add_subparsers(dest='command', required=True)
@@ -112,6 +123,9 @@ def build_parser():
     p=sub.add_parser('export-comfyui'); p.add_argument('project'); p.add_argument('--model', default='realisticVisionV51_v51VAE.safetensors'); p.add_argument('--width', type=int, default=1024); p.add_argument('--height', type=int, default=576); p.set_defaults(func=cmd_export_comfyui)
     p=sub.add_parser('export-ffmpeg'); p.add_argument('project'); p.add_argument('--pattern', default='shot_{index:03d}.mp4'); p.add_argument('--output', default='lookbook_assembly.mp4'); p.add_argument('--fps', type=int, default=24); p.set_defaults(func=cmd_export_ffmpeg)
     p=sub.add_parser('export-remotion'); p.add_argument('project'); p.add_argument('--fps', type=int, default=24); p.set_defaults(func=cmd_export_remotion)
+    # Batch archive commands
+    p=sub.add_parser('list-pages'); p.add_argument('archive'); p.set_defaults(func=cmd_list_pages)
+    p=sub.add_parser('process-archive'); p.add_argument('archive'); p.add_argument('project'); p.add_argument('--keep', action='store_true', help='Keep extracted page files after processing'); p.set_defaults(func=cmd_process_archive)
     return parser
 
 def main(argv=None): args=build_parser().parse_args(argv); args.func(args)
