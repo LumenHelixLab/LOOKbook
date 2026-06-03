@@ -11,10 +11,13 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "lookBOOK contributors"}]
 keywords = ["ai-video", "image-to-video", "motion-comic", "books", "comics", "animation", "gemini", "veo", "runway", "kling", "open-source"]
-dependencies = []
+dependencies = [
+    "numpy>=2.0,<2.4",
+]
 
 [project.optional-dependencies]
 image = ["Pillow>=10.0"]
+vision = ["opencv-python-headless>=4.8", "pytesseract>=0.3", "numpy>=2.0"]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]
