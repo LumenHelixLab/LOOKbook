@@ -14,8 +14,8 @@
 - [x] shot graph generator
 
 ## Phase 3 — Generation Integrations
-- [ ] Runway workflow export
-- [ ] Veo/Flow workflow export
-- [ ] Kling/Pika/Luma prompt export
-- [ ] local ComfyUI keyframe workflow
-- [ ] FFmpeg assembly helper
+- [x] Runway workflow export
+- [x] Veo/Flow workflow export
+- [x] Kling/Pika/Luma prompt export
+- [x] local ComfyUI keyframe workflow
+- [x] FFmpeg assembly helper

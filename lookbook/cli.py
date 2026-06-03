@@ -10,6 +10,11 @@ from .pipeline.panels import detect_panels
 from .pipeline.characters import extract_characters
 from .pipeline.scene_graph import build_scene_graph
 from .pipeline.shot_graph import build_shot_graph
+from .pipeline.runway_export import export_runway
+from .pipeline.veo_export import export_veo
+from .pipeline.kling_export import export_kling
+from .pipeline.comfyui_export import export_comfyui
+from .pipeline.ffmpeg_export import export_ffmpeg
 from .lab import install_demo_lab
 
 def cmd_init(args): print(f"Created lookBOOK project: {init_project(args.path, args.name)}")
@@ -51,6 +56,32 @@ def cmd_build_shot_graph(args):
         print(f"Built {len(shots)} shots ({total_dur:.1f}s) → project/analysis/shot_graph.json")
         print(f"  Total duration: {total_dur:.1f}s @ {24}fps = {int(total_dur*24)} frames")
         for s in shots[:5]: print(f"  Shot {s['shot_index']}: {s['type']} ({s['duration_seconds']}s) — {s['camera']}")
+def cmd_export_runway(args):
+    jobs=export_runway(args.project)
+    print(f"Exported {len(jobs)} Runway jobs → project/exports/runway/")
+    for j in jobs[:3]: print(f"  Shot {j['shot_index']}: {j['type']} ({j['duration_seconds']}s)")
+    if len(jobs)>3: print(f"  ... and {len(jobs)-3} more")
+def cmd_export_veo(args):
+    prompts=export_veo(args.project)
+    print(f"Exported {len(prompts)} Veo prompts → project/exports/veo/")
+    for p in prompts[:3]: print(f"  Shot {p['shot_index']}: {p['type']} ({p['duration_seconds']}s)")
+    if len(prompts)>3: print(f"  ... and {len(prompts)-3} more")
+def cmd_export_kling(args):
+    result=export_kling(args.project)
+    for platform, entries in result.items():
+        print(f"Exported {len(entries)} {platform} prompts → project/exports/{platform}/")
+def cmd_export_comfyui(args):
+    wfs=export_comfyui(args.project, model=args.model, width=args.width, height=args.height)
+    print(f"Exported {len(wfs)} ComfyUI workflows → project/exports/comfyui/")
+    print(f"  Model: {args.model}")
+    for w in wfs[:3]: print(f"  Shot {w['shot_index']}: {w['type']} ({w['duration_seconds']}s)")
+    if len(wfs)>3: print(f"  ... and {len(wfs)-3} more")
+def cmd_export_ffmpeg(args):
+    result=export_ffmpeg(args.project, input_pattern=args.pattern, output_name=args.output, fps=args.fps)
+    print(f"Generated FFmpeg assembly → project/exports/ffmpeg/")
+    print(f"  Script: {result['assembly_script']}")
+    print(f"  Output: {result['output_file']}")
+    print(f"  Shots: {result['total_shots']}")
 
 def build_parser():
     parser=argparse.ArgumentParser(prog='lookbook', description='Open-source book-to-animation compiler.'); sub=parser.add_subparsers(dest='command', required=True)
@@ -66,6 +97,12 @@ def build_parser():
     p=sub.add_parser('extract-characters'); p.add_argument('source'); p.add_argument('project'); p.add_argument('--threshold', type=float, default=0.3); p.set_defaults(func=cmd_extract_characters)
     p=sub.add_parser('build-scene-graph'); p.add_argument('project'); p.set_defaults(func=cmd_build_scene_graph)
     p=sub.add_parser('build-shot-graph'); p.add_argument('project'); p.set_defaults(func=cmd_build_shot_graph)
+    # Phase D — Generation Integration commands
+    p=sub.add_parser('export-runway'); p.add_argument('project'); p.set_defaults(func=cmd_export_runway)
+    p=sub.add_parser('export-veo'); p.add_argument('project'); p.set_defaults(func=cmd_export_veo)
+    p=sub.add_parser('export-kling'); p.add_argument('project'); p.set_defaults(func=cmd_export_kling)
+    p=sub.add_parser('export-comfyui'); p.add_argument('project'); p.add_argument('--model', default='realisticVisionV51_v51VAE.safetensors'); p.add_argument('--width', type=int, default=1024); p.add_argument('--height', type=int, default=576); p.set_defaults(func=cmd_export_comfyui)
+    p=sub.add_parser('export-ffmpeg'); p.add_argument('project'); p.add_argument('--pattern', default='shot_{index:03d}.mp4'); p.add_argument('--output', default='lookbook_assembly.mp4'); p.add_argument('--fps', type=int, default=24); p.set_defaults(func=cmd_export_ffmpeg)
     return parser
 
 def main(argv=None): args=build_parser().parse_args(argv); args.func(args)
