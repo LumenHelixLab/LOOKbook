@@ -26,7 +26,9 @@ def export_runway(
     if shot_graph_path is None:
         shot_graph_path = project / "analysis" / "shot_graph.json"
     if not shot_graph_path.exists():
-        raise FileNotFoundError(f"Shot graph not found at {shot_graph_path}. Run 'lookbook build-shot-graph' first.")
+        raise FileNotFoundError(
+            f"Shot graph not found at {shot_graph_path}. Run 'lookbook build-shot-graph' first."
+        )
 
     shot_data = json.loads(shot_graph_path.read_text(encoding="utf-8"))
     shots = shot_data.get("shots", [])
@@ -115,7 +117,9 @@ def export_runway(
     # Also write a readable summary
     lines = ["# Runway ML Workflow Export", "", "## Shot-by-Shot Breakdown", ""]
     for j in runway_jobs:
-        lines.append(f"### Shot {j['shot_index']:03d} — {j['type'].title()} ({j['duration_seconds']}s)")
+        lines.append(
+            f"### Shot {j['shot_index']:03d} — {j['type'].title()} ({j['duration_seconds']}s)"
+        )
         lines.append(f"Prompt: {j['prompt'][:120]}...")
         lines.append(f"Panels: {j['panel_refs']}")
         lines.append("")

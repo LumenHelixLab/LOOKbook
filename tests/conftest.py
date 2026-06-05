@@ -1,4 +1,5 @@
 """pytest configuration for lookBOOK tests."""
+
 from __future__ import annotations
 import os
 from pathlib import Path
@@ -14,6 +15,7 @@ for _p in _tesseract_paths:
         os.environ.setdefault("TESSERACT_CMD", _p)
         try:
             import pytesseract
+
             pytesseract.pytesseract.tesseract_cmd = _p
         except ImportError:
             pass

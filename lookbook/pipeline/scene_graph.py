@@ -43,9 +43,7 @@ def build_scene_graph(
     ocr_blocks = _load("ocr", default=[])
 
     if not panels:
-        raise ValueError(
-            "No panel data found. Run 'lookbook detect-panels' first."
-        )
+        raise ValueError("No panel data found. Run 'lookbook detect-panels' first.")
 
     # Build a panel index for quick lookup
     panel_map: dict[int, dict[str, Any]] = {}
@@ -91,9 +89,7 @@ def build_scene_graph(
 
     # Don't forget the last scene
     if current_scene:
-        scenes.append(
-            _build_scene(len(scenes), current_scene, panel_map, ocr_blocks, characters)
-        )
+        scenes.append(_build_scene(len(scenes), current_scene, panel_map, ocr_blocks, characters))
 
     result = {
         "schema": "lookbook.scene_graph.v0.2",

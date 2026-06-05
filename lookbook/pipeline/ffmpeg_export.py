@@ -108,9 +108,7 @@ echo Assembly complete: %s
     script_path.write_text(concat_script, encoding="utf-8")
 
     # Also write a shell-compatible version
-    sh_script = concat_script.replace("@echo off", "#!/bin/bash").replace(
-        "REM", "#"
-    )
+    sh_script = concat_script.replace("@echo off", "#!/bin/bash").replace("REM", "#")
     sh_script_path = export_dir / "assemble.sh"
     sh_script_path.write_text(sh_script, encoding="utf-8")
 

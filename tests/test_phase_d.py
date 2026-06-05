@@ -17,9 +17,7 @@ def project_with_scenes(tmp_path: Path) -> Path:
     (project / "exports").mkdir()
 
     # Write manifest
-    (project / "manifest.json").write_text(
-        json.dumps({"project": "Test", "format_version": "0.2"})
-    )
+    (project / "manifest.json").write_text(json.dumps({"project": "Test", "format_version": "0.2"}))
 
     # Write mock shot graph
     shot_graph = {

@@ -215,9 +215,7 @@ def export_remotion(
             "typescript": "^5.5.0",
         },
     }
-    (export_dir / "package.json").write_text(
-        json.dumps(package_json, indent=2), encoding="utf-8"
-    )
+    (export_dir / "package.json").write_text(json.dumps(package_json, indent=2), encoding="utf-8")
 
     # Generate tsconfig.json
     tsconfig = {
@@ -258,7 +256,7 @@ def export_remotion(
 
     ## Compositions
 
-    {chr(10).join(f'- Shot{idx:03d}: {s["type"]} ({s["duration_seconds"]}s) — {s.get("camera", "static")}' for idx, s in enumerate(shots[:10]))}
+    {chr(10).join(f"- Shot{idx:03d}: {s['type']} ({s['duration_seconds']}s) — {s.get('camera', 'static')}" for idx, s in enumerate(shots[:10]))}
     {"..." if len(shots) > 10 else ""}
 
     ## Transitions
@@ -289,8 +287,7 @@ def export_remotion(
             "tsconfig": "tsconfig.json",
             "readme": "README.md",
             "shot_components": [
-                f"src/Shot{idx:03d}.tsx"
-                for idx in [s["shot_index"] for s in shots]
+                f"src/Shot{idx:03d}.tsx" for idx in [s["shot_index"] for s in shots]
             ],
         },
         "setup_instructions": [

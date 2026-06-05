@@ -79,7 +79,9 @@ def export_kling(
         for i, shot in enumerate(shots):
             camera_kw = camera_keywords.get(shot.get("camera", "static"), "static shot")
             dialogue = " ".join(shot.get("dialogue", []))
-            characters = ", ".join(shot.get("characters", [])) if shot.get("characters") else "figures"
+            characters = (
+                ", ".join(shot.get("characters", [])) if shot.get("characters") else "figures"
+            )
             motion = shot.get("motion_directive", "")
             dur = shot["duration_seconds"]
 
@@ -138,10 +140,14 @@ def export_kling(
         # Write readable prompt pack
         lines = [f"# {platform.title()} Prompt Export", "", "## Shot Prompts", ""]
         for e in entries:
-            lines.append(f"### Shot {e['shot_index']:03d} — {e['type'].title()} ({e['duration_seconds']}s)")
+            lines.append(
+                f"### Shot {e['shot_index']:03d} — {e['type'].title()} ({e['duration_seconds']}s)"
+            )
             lines.append(e["prompt"])
             lines.append("")
-        (platform_dir / f"{platform.upper()}_PROMPTS.md").write_text("\n".join(lines), encoding="utf-8")
+        (platform_dir / f"{platform.upper()}_PROMPTS.md").write_text(
+            "\n".join(lines), encoding="utf-8"
+        )
 
         result[platform] = entries
 

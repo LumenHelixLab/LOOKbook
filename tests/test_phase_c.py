@@ -75,6 +75,7 @@ class TestOCR:
         out = preprocess_image(sample_image, tmp_path / "preproc")
         assert out.exists()
         from PIL import Image
+
         img = Image.open(out)
         assert img.mode == "L"  # grayscale
 
@@ -83,6 +84,7 @@ class TestOCR:
         pytest.importorskip("pytesseract")
         import pytesseract as pt
         from pathlib import Path
+
         if not Path(pt.pytesseract.tesseract_cmd).exists():
             pytest.skip("Tesseract OCR engine not found on this system")
 
@@ -108,6 +110,7 @@ class TestPanels:
     def test_detect_panels_integration(self, sample_image, test_project):
         """Detect panels from synthetic comic page."""
         import importlib.util
+
         if importlib.util.find_spec("cv2") is None:
             pytest.skip("OpenCV not available")
 
@@ -227,9 +230,7 @@ class TestShotGraph:
                     "scene_index": 1,
                     "panel_count": 1,
                     "panel_indices": [2],
-                    "panels": [
-                        {"panel_index": 2, "bbox": {"x": 0, "y": 100, "w": 100, "h": 100}}
-                    ],
+                    "panels": [{"panel_index": 2, "bbox": {"x": 0, "y": 100, "w": 100, "h": 100}}],
                     "characters": [],
                     "dialogue": [],
                     "narration": ["The end."],
@@ -263,6 +264,7 @@ class TestCLIIntegration:
         pytest.importorskip("pytesseract")
         import pytesseract as pt
         from pathlib import Path
+
         if not Path(pt.pytesseract.tesseract_cmd).exists():
             pytest.skip("Tesseract OCR engine not found on this system")
 
@@ -275,6 +277,7 @@ class TestCLIIntegration:
     def test_detect_panels_cli(self, sample_image, test_project):
         """Verify detect-panels CLI command."""
         import importlib.util
+
         if importlib.util.find_spec("cv2") is None:
             pytest.skip("OpenCV not available")
 

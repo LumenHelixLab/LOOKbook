@@ -2,7 +2,18 @@ from __future__ import annotations
 from pathlib import Path
 from .models import LookbookManifest, write_json
 
-PROJECT_DIRS = ["source", "analysis", "characters", "shots", "keyframes", "prompts", "audio", "renders", "exports", "review"]
+PROJECT_DIRS = [
+    "source",
+    "analysis",
+    "characters",
+    "shots",
+    "keyframes",
+    "prompts",
+    "audio",
+    "renders",
+    "exports",
+    "review",
+]
 
 
 def init_project(path: str | Path, name: str = "Untitled lookBOOK Project") -> Path:

@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 import html
 
+
 def export_web(project: str | Path, output: str | Path) -> Path:
     project = Path(project)
     output = Path(output)

@@ -117,7 +117,9 @@ def export_veo(
     # Write readable prompt pack
     lines = ["# Veo 2 / Gemini Prompt Sequence", "", "## Shot Prompts", ""]
     for p in veo_prompts:
-        lines.append(f"### Shot {p['shot_index']:03d} — {p['type'].title()} ({p['duration_seconds']}s)")
+        lines.append(
+            f"### Shot {p['shot_index']:03d} — {p['type'].title()} ({p['duration_seconds']}s)"
+        )
         lines.append(p["prompt"])
         lines.append("")
     (shot_dir / "VEO_PROMPT_SEQUENCE.md").write_text("\n".join(lines), encoding="utf-8")

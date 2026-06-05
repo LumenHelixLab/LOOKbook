@@ -92,7 +92,9 @@ def extract_text(
                     },
                     "block_num": block_num,
                     "line_num": int(data["line_num"][i]),
-                    "paragraph_num": int(data.get("para_num", [0])[i]) if len(data.get("para_num", [])) > i else 0,
+                    "paragraph_num": int(data.get("para_num", [0])[i])
+                    if len(data.get("para_num", [])) > i
+                    else 0,
                 }
             )
         else:
@@ -145,8 +147,7 @@ def _classify_text_block(block: dict[str, Any]) -> str:
         return "sfx"
     # Narration: starts with typical narration markers
     if any(
-        text.startswith(m)
-        for m in ["NARRATOR:", "Once upon", "Meanwhile", "Later", "Suddenly"]
+        text.startswith(m) for m in ["NARRATOR:", "Once upon", "Meanwhile", "Later", "Suddenly"]
     ):
         return "narration"
     return "caption"

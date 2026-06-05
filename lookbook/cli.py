@@ -30,18 +30,20 @@ def cmd_analyze(args):
     source = Path(args.source)
     if not project.exists():
         init_project(project, project.name)
-    target = project / 'source' / source.name
+    target = project / "source" / source.name
     target.parent.mkdir(parents=True, exist_ok=True)
     if source.resolve() != target.resolve():
         shutil.copy2(source, target)
     payload = analyze_source(target, project)
     print(f"Analysis written: {project / 'analysis' / 'source_analysis.json'}")
-    if 'image' in payload:
+    if "image" in payload:
         print(f"Detected image: {payload['image']['width']}x{payload['image']['height']}")
 
 
 def cmd_true_animation_packet(args):
-    print(f"Created true-animation packet: {create_true_animation_packet(args.project, args.target)}")
+    print(
+        f"Created true-animation packet: {create_true_animation_packet(args.project, args.target)}"
+    )
 
 
 def cmd_export_web(args):
@@ -49,9 +51,9 @@ def cmd_export_web(args):
 
 
 def cmd_demo(args):
-    project = init_project(args.path, 'lookBOOK Vector Bay 7 Demo')
-    create_true_animation_packet(project, 'runway')
-    export_web(project, project / 'exports' / 'review.html')
+    project = init_project(args.path, "lookBOOK Vector Bay 7 Demo")
+    create_true_animation_packet(project, "runway")
+    export_web(project, project / "exports" / "review.html")
     print(f"Created demo project: {project}")
 
 
@@ -84,9 +86,7 @@ def cmd_detect_panels(args):
 
 
 def cmd_extract_characters(args):
-    chars = extract_characters(
-        args.source, args.project, similarity_threshold=args.threshold
-    )
+    chars = extract_characters(args.source, args.project, similarity_threshold=args.threshold)
     print(f"Extracted {len(chars)} character clusters → project/analysis/character_analysis.json")
     for c in chars[:5]:
         print(f"  {c['character_id']}: {c['appearances']} appearances")
@@ -98,17 +98,21 @@ def cmd_build_scene_graph(args):
     scenes = build_scene_graph(args.project)
     print(f"Built {len(scenes)} scenes → project/analysis/scene_graph.json")
     for s in scenes:
-        print(f"  Scene {s['scene_index']}: {s['panel_count']} panels, {len(s['characters'])} characters")
+        print(
+            f"  Scene {s['scene_index']}: {s['panel_count']} panels, {len(s['characters'])} characters"
+        )
 
 
 def cmd_build_shot_graph(args):
     shots = build_shot_graph(args.project)
     if shots:
-        total_dur = sum(s['duration_seconds'] for s in shots)
+        total_dur = sum(s["duration_seconds"] for s in shots)
         print(f"Built {len(shots)} shots ({total_dur:.1f}s) → project/analysis/shot_graph.json")
         print(f"  Total duration: {total_dur:.1f}s @ {24}fps = {int(total_dur * 24)} frames")
         for s in shots[:5]:
-            print(f"  Shot {s['shot_index']}: {s['type']} ({s['duration_seconds']}s) — {s['camera']}")
+            print(
+                f"  Shot {s['shot_index']}: {s['type']} ({s['duration_seconds']}s) — {s['camera']}"
+            )
 
 
 def cmd_export_runway(args):
@@ -136,9 +140,7 @@ def cmd_export_kling(args):
 
 
 def cmd_export_comfyui(args):
-    wfs = export_comfyui(
-        args.project, model=args.model, width=args.width, height=args.height
-    )
+    wfs = export_comfyui(args.project, model=args.model, width=args.width, height=args.height)
     print(f"Exported {len(wfs)} ComfyUI workflows → project/exports/comfyui/")
     print(f"  Model: {args.model}")
     for w in wfs[:3]:
@@ -162,7 +164,7 @@ def cmd_export_ffmpeg(args):
 
 def cmd_export_remotion(args):
     result = export_remotion(args.project, fps=args.fps)
-    n = result['total_shots']
+    n = result["total_shots"]
     print(f"Generated Remotion project with {n} shots → project/exports/remotion/")
     print(f"  Duration: {result['total_duration_seconds']:.1f}s @ {result['fps']}fps")
     print(f"  Resolution: {result['resolution']['width']}x{result['resolution']['height']}")
@@ -173,7 +175,7 @@ def cmd_list_pages(args):
     pages = list_pages(args.archive)
     print(f"Found {len(pages)} pages in {Path(args.archive).name}:")
     for p in pages:
-        size_kb = p['size_bytes'] / 1024
+        size_kb = p["size_bytes"] / 1024
         print(f"  Page {p['page_index']:03d}: {p['filename']} ({size_kb:.0f}KB)")
 
 
@@ -185,115 +187,115 @@ def cmd_process_archive(args):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog='lookbook',
-        description='Open-source book-to-animation compiler.',
+        prog="lookbook",
+        description="Open-source book-to-animation compiler.",
     )
-    sub = parser.add_subparsers(dest='command', required=True)
+    sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser('init')
-    p.add_argument('path')
-    p.add_argument('--name', default='Untitled lookBOOK Project')
+    p = sub.add_parser("init")
+    p.add_argument("path")
+    p.add_argument("--name", default="Untitled lookBOOK Project")
     p.set_defaults(func=cmd_init)
 
-    p = sub.add_parser('analyze-source')
-    p.add_argument('source')
-    p.add_argument('project')
+    p = sub.add_parser("analyze-source")
+    p.add_argument("source")
+    p.add_argument("project")
     p.set_defaults(func=cmd_analyze)
 
-    p = sub.add_parser('true-animation-packet')
-    p.add_argument('project')
+    p = sub.add_parser("true-animation-packet")
+    p.add_argument("project")
     p.add_argument(
-        '--target',
-        default='runway',
-        choices=['runway', 'veo', 'gemini', 'kling', 'pika', 'luma'],
+        "--target",
+        default="runway",
+        choices=["runway", "veo", "gemini", "kling", "pika", "luma"],
     )
     p.set_defaults(func=cmd_true_animation_packet)
 
-    p = sub.add_parser('export-web')
-    p.add_argument('project')
-    p.add_argument('output')
+    p = sub.add_parser("export-web")
+    p.add_argument("project")
+    p.add_argument("output")
     p.set_defaults(func=cmd_export_web)
 
-    p = sub.add_parser('demo')
-    p.add_argument('path')
+    p = sub.add_parser("demo")
+    p.add_argument("path")
     p.set_defaults(func=cmd_demo)
 
-    p = sub.add_parser('install-demo-lab')
-    p.add_argument('output')
+    p = sub.add_parser("install-demo-lab")
+    p.add_argument("output")
     p.set_defaults(func=cmd_install_demo_lab)
 
     # Phase C — Source Intelligence commands
-    p = sub.add_parser('extract-text')
-    p.add_argument('source')
-    p.add_argument('project')
-    p.add_argument('--lang', default='eng')
-    p.add_argument('--psm', type=int, default=6)
-    p.add_argument('--no-preprocess', action='store_true')
+    p = sub.add_parser("extract-text")
+    p.add_argument("source")
+    p.add_argument("project")
+    p.add_argument("--lang", default="eng")
+    p.add_argument("--psm", type=int, default=6)
+    p.add_argument("--no-preprocess", action="store_true")
     p.set_defaults(func=cmd_extract_text)
 
-    p = sub.add_parser('detect-panels')
-    p.add_argument('source')
-    p.add_argument('project')
+    p = sub.add_parser("detect-panels")
+    p.add_argument("source")
+    p.add_argument("project")
     p.set_defaults(func=cmd_detect_panels)
 
-    p = sub.add_parser('extract-characters')
-    p.add_argument('source')
-    p.add_argument('project')
-    p.add_argument('--threshold', type=float, default=0.3)
+    p = sub.add_parser("extract-characters")
+    p.add_argument("source")
+    p.add_argument("project")
+    p.add_argument("--threshold", type=float, default=0.3)
     p.set_defaults(func=cmd_extract_characters)
 
-    p = sub.add_parser('build-scene-graph')
-    p.add_argument('project')
+    p = sub.add_parser("build-scene-graph")
+    p.add_argument("project")
     p.set_defaults(func=cmd_build_scene_graph)
 
-    p = sub.add_parser('build-shot-graph')
-    p.add_argument('project')
+    p = sub.add_parser("build-shot-graph")
+    p.add_argument("project")
     p.set_defaults(func=cmd_build_shot_graph)
 
     # Phase D — Generation Integration commands
-    p = sub.add_parser('export-runway')
-    p.add_argument('project')
+    p = sub.add_parser("export-runway")
+    p.add_argument("project")
     p.set_defaults(func=cmd_export_runway)
 
-    p = sub.add_parser('export-veo')
-    p.add_argument('project')
+    p = sub.add_parser("export-veo")
+    p.add_argument("project")
     p.set_defaults(func=cmd_export_veo)
 
-    p = sub.add_parser('export-kling')
-    p.add_argument('project')
+    p = sub.add_parser("export-kling")
+    p.add_argument("project")
     p.set_defaults(func=cmd_export_kling)
 
-    p = sub.add_parser('export-comfyui')
-    p.add_argument('project')
-    p.add_argument('--model', default='realisticVisionV51_v51VAE.safetensors')
-    p.add_argument('--width', type=int, default=1024)
-    p.add_argument('--height', type=int, default=576)
+    p = sub.add_parser("export-comfyui")
+    p.add_argument("project")
+    p.add_argument("--model", default="realisticVisionV51_v51VAE.safetensors")
+    p.add_argument("--width", type=int, default=1024)
+    p.add_argument("--height", type=int, default=576)
     p.set_defaults(func=cmd_export_comfyui)
 
-    p = sub.add_parser('export-ffmpeg')
-    p.add_argument('project')
-    p.add_argument('--pattern', default='shot_{index:03d}.mp4')
-    p.add_argument('--output', default='lookbook_assembly.mp4')
-    p.add_argument('--fps', type=int, default=24)
+    p = sub.add_parser("export-ffmpeg")
+    p.add_argument("project")
+    p.add_argument("--pattern", default="shot_{index:03d}.mp4")
+    p.add_argument("--output", default="lookbook_assembly.mp4")
+    p.add_argument("--fps", type=int, default=24)
     p.set_defaults(func=cmd_export_ffmpeg)
 
-    p = sub.add_parser('export-remotion')
-    p.add_argument('project')
-    p.add_argument('--fps', type=int, default=24)
+    p = sub.add_parser("export-remotion")
+    p.add_argument("project")
+    p.add_argument("--fps", type=int, default=24)
     p.set_defaults(func=cmd_export_remotion)
 
     # Batch archive commands
-    p = sub.add_parser('list-pages')
-    p.add_argument('archive')
+    p = sub.add_parser("list-pages")
+    p.add_argument("archive")
     p.set_defaults(func=cmd_list_pages)
 
-    p = sub.add_parser('process-archive')
-    p.add_argument('archive')
-    p.add_argument('project')
+    p = sub.add_parser("process-archive")
+    p.add_argument("archive")
+    p.add_argument("project")
     p.add_argument(
-        '--keep',
-        action='store_true',
-        help='Keep extracted page files after processing',
+        "--keep",
+        action="store_true",
+        help="Keep extracted page files after processing",
     )
     p.set_defaults(func=cmd_process_archive)
 
@@ -305,5 +307,5 @@ def main(argv=None):
     args.func(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -117,9 +117,7 @@ def build_shot_graph(
             "dialogue": dialogue,
             "narration": narration,
             "characters": scene.get("characters", []),
-            "motion_directive": _generate_motion_directive(
-                shot_type, panel_count, has_dialogue
-            ),
+            "motion_directive": _generate_motion_directive(shot_type, panel_count, has_dialogue),
         }
 
         shots.append(shot)
@@ -163,9 +161,7 @@ def build_shot_graph(
     return shots
 
 
-def _generate_motion_directive(
-    shot_type: str, panel_count: int, has_dialogue: bool
-) -> str:
+def _generate_motion_directive(shot_type: str, panel_count: int, has_dialogue: bool) -> str:
     """Generate a human-readable motion directive for the shot."""
     if shot_type == "establishing":
         return (

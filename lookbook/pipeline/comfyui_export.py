@@ -21,7 +21,10 @@ DEFAULT_COMFY_WORKFLOW = {
             "latent_image": ["5", 0],
         },
     },
-    "2": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "realisticVisionV51_v51VAE.safetensors"}},
+    "2": {
+        "class_type": "CheckpointLoaderSimple",
+        "inputs": {"ckpt_name": "realisticVisionV51_v51VAE.safetensors"},
+    },
     "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["2", 1]}},
     "4": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["2", 1]}},
     "5": {
@@ -29,7 +32,10 @@ DEFAULT_COMFY_WORKFLOW = {
         "inputs": {"width": 1024, "height": 576, "batch_size": 1},
     },
     "6": {"class_type": "VAEDecode", "inputs": {"samples": ["1", 0], "vae": ["2", 2]}},
-    "7": {"class_type": "SaveImage", "inputs": {"filename_prefix": "lookbook_shot", "images": ["6", 0]}},
+    "7": {
+        "class_type": "SaveImage",
+        "inputs": {"filename_prefix": "lookbook_shot", "images": ["6", 0]},
+    },
     "8": {
         "class_type": "LoadImage",
         "inputs": {"image": "", "upload": "image"},

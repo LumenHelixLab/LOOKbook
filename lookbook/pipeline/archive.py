@@ -46,9 +46,7 @@ def list_pages(archive: str | Path) -> list[dict[str, Any]]:
         try:
             import rarfile
         except ImportError:
-            raise ImportError(
-                "rarfile is required for CBR archives. Install: pip install rarfile"
-            )
+            raise ImportError("rarfile is required for CBR archives. Install: pip install rarfile")
 
         with rarfile.RarFile(archive, "r") as rf:
             names = sorted(rf.namelist())
@@ -87,6 +85,7 @@ def extract_page(
 
     elif _is_cbr(archive):
         import rarfile
+
         with rarfile.RarFile(archive, "r") as rf:
             rf.extract(filename, output_dir)
 
@@ -157,7 +156,7 @@ def process_archive(
     print(f"Processing {len(pages)} pages from {archive.name}...")
 
     for i, page in enumerate(pages):
-        print(f"  Page {i+1}/{len(pages)}: {page['filename']}")
+        print(f"  Page {i + 1}/{len(pages)}: {page['filename']}")
 
         # Extract
         img_path = extract_page(archive, page["filename"], extract_dir)
@@ -223,7 +222,13 @@ def process_archive(
         page_result["shot_graph_error"] = str(e)
 
     # Export to all platforms
-    for export_cmd in ["export-runway", "export-veo", "export-kling", "export-ffmpeg", "export-remotion"]:
+    for export_cmd in [
+        "export-runway",
+        "export-veo",
+        "export-kling",
+        "export-ffmpeg",
+        "export-remotion",
+    ]:
         try:
             cli_main([export_cmd, str(project)])
         except Exception:
@@ -232,6 +237,7 @@ def process_archive(
     # Cleanup extracted pages unless requested to keep
     if not no_cleanup:
         import shutil
+
         shutil.rmtree(extract_dir, ignore_errors=True)
 
     summary = {
@@ -243,6 +249,7 @@ def process_archive(
     }
 
     from ..models import write_json
+
     write_json(project / "analysis" / "archive_process.json", summary)
 
     total_panels = sum(r["panels"] for r in results)

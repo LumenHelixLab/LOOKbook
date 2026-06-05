@@ -10,6 +10,7 @@ ECC and Hermes use nearly identical formats — the converter handles:
 Usage:
   python ecc_to_hermes.py <ecc_skill_dir> <hermes_skill_name> [--category <cat>]
 """
+
 from __future__ import annotations
 import sys
 import shutil
@@ -51,7 +52,7 @@ def convert_skill(
         raise ValueError(f"No YAML frontmatter found in {skill_md}")
 
     frontmatter_text = frontmatter_match.group(1)
-    body = content[frontmatter_match.end():]
+    body = content[frontmatter_match.end() :]
 
     # Strip ECC-specific fields from frontmatter
     ecc_fields = ["origin:", "version:"]
@@ -89,9 +90,7 @@ def convert_skill(
         print(f"[DRY RUN] Would create: {target_skill_md}")
         print(f"[DRY RUN] ECC src: {ecc_path}")
         print("[DRY RUN] Frontmatter fields stripped: origin, version")
-        print(
-            f"[DRY RUN] Linked files: {sum(len(v) for v in linked_files.values())}"
-        )
+        print(f"[DRY RUN] Linked files: {sum(len(v) for v in linked_files.values())}")
         return {"status": "dry_run", "target": str(target_skill_md)}
 
     # Write SKILL.md

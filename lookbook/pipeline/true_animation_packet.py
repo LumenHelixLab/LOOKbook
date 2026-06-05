@@ -59,6 +59,7 @@ Reject if:
 - bodies melt, duplicate, or become unreadable
 """
 
+
 def create_true_animation_packet(project: str | Path, target: str = "runway") -> Path:
     project = Path(project)
     out = project / "prompts" / target
@@ -66,5 +67,16 @@ def create_true_animation_packet(project: str | Path, target: str = "runway") ->
     (out / "TRUE_ANIMATION_PROMPT.md").write_text(PROMPT, encoding="utf-8")
     (out / "SHOT_LIST.md").write_text(SHOT_TEMPLATE, encoding="utf-8")
     (out / "QUALITY_GATE.md").write_text(QUALITY, encoding="utf-8")
-    write_json(project / "analysis" / f"{target}_true_animation_packet.json", {"schema":"lookbook.true_animation_packet.v0.2","target":target,"files":[str((out/"TRUE_ANIMATION_PROMPT.md").relative_to(project)),str((out/"SHOT_LIST.md").relative_to(project)),str((out/"QUALITY_GATE.md").relative_to(project))]})
+    write_json(
+        project / "analysis" / f"{target}_true_animation_packet.json",
+        {
+            "schema": "lookbook.true_animation_packet.v0.2",
+            "target": target,
+            "files": [
+                str((out / "TRUE_ANIMATION_PROMPT.md").relative_to(project)),
+                str((out / "SHOT_LIST.md").relative_to(project)),
+                str((out / "QUALITY_GATE.md").relative_to(project)),
+            ],
+        },
+    )
     return out
