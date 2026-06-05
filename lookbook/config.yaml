@@ -1,0 +1,9 @@
+vision:
+  provider: openai
+  model: gpt-4o
+  max_tokens: 2048
+  temperature: 0.3
+
+fallback:
+  enabled: true
+  provider: classical
