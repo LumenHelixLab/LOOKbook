@@ -1,7 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
-import hashlib
 from ..models import write_json
 
 
@@ -14,7 +13,7 @@ def _average_hash(img_path: Path, hash_size: int = 8) -> str:
     from PIL import Image
 
     img = Image.open(img_path).convert("L").resize((hash_size, hash_size), Image.LANCZOS)
-    pixels = list(img.get_flattened_data())
+    pixels = list(img.getdata())
     avg = sum(pixels) / len(pixels)
     bits = "".join("1" if p > avg else "0" for p in pixels)
     # Convert binary string to hex
@@ -73,7 +72,6 @@ def extract_characters(
         raise ValueError("No panels found in panel analysis.")
 
     # Compute perceptual hash for each panel image
-    from PIL import Image
 
     panel_hashes: list[dict[str, Any]] = []
     for p in panels:

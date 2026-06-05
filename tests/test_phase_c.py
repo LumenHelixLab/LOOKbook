@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-import json, shutil, tempfile
+import json
 
 import pytest
 
@@ -107,9 +107,8 @@ class TestOCR:
 class TestPanels:
     def test_detect_panels_integration(self, sample_image, test_project):
         """Detect panels from synthetic comic page."""
-        try:
-            import cv2
-        except ImportError:
+        import importlib.util
+        if importlib.util.find_spec("cv2") is None:
             pytest.skip("OpenCV not available")
 
         from lookbook.pipeline.panels import detect_panels
@@ -275,9 +274,8 @@ class TestCLIIntegration:
 
     def test_detect_panels_cli(self, sample_image, test_project):
         """Verify detect-panels CLI command."""
-        try:
-            import cv2
-        except ImportError:
+        import importlib.util
+        if importlib.util.find_spec("cv2") is None:
             pytest.skip("OpenCV not available")
 
         from lookbook.cli import main

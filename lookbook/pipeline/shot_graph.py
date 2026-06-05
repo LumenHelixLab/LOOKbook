@@ -79,7 +79,6 @@ def build_shot_graph(
             continue
 
         # Establishing shot for the scene
-        import hashlib
 
         # Deterministic camera move from scene index
         cam_idx = scene["scene_index"] % len(CAMERA_MOVES)

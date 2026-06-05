@@ -58,7 +58,6 @@ def export_ffmpeg(
 
     # Write input file list for concat demuxer
     concat_lines: list[str] = []
-    ffmpeg_cmds: list[str] = []
     temp_files: list[str] = []
 
     for i, shot in enumerate(shots):

@@ -11,7 +11,9 @@ Usage:
   python ecc_to_hermes.py <ecc_skill_dir> <hermes_skill_name> [--category <cat>]
 """
 from __future__ import annotations
-import sys, shutil, re
+import sys
+import shutil
+import re
 from pathlib import Path
 
 
@@ -86,7 +88,7 @@ def convert_skill(
     if dry_run:
         print(f"[DRY RUN] Would create: {target_skill_md}")
         print(f"[DRY RUN] ECC src: {ecc_path}")
-        print(f"[DRY RUN] Frontmatter fields stripped: origin, version")
+        print("[DRY RUN] Frontmatter fields stripped: origin, version")
         print(
             f"[DRY RUN] Linked files: {sum(len(v) for v in linked_files.values())}"
         )

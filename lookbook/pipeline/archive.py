@@ -1,7 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Any, Iterator
-import zipfile, tempfile, shutil, json
+from typing import Any
+import zipfile
+import json
 
 
 def _is_cbz(path: Path) -> bool:
@@ -225,7 +226,7 @@ def process_archive(
     for export_cmd in ["export-runway", "export-veo", "export-kling", "export-ffmpeg", "export-remotion"]:
         try:
             cli_main([export_cmd, str(project)])
-        except Exception as e:
+        except Exception:
             pass  # Some exports may require shot_graph which might have failed
 
     # Cleanup extracted pages unless requested to keep
@@ -253,6 +254,6 @@ def process_archive(
     print(f"  Total panels detected: {total_panels}")
     print(f"  Total OCR blocks: {total_ocr}")
     print(f"  Total character clusters: {total_chars}")
-    print(f"  Exports: runway, veo, kling, ffmpeg, remotion")
+    print("  Exports: runway, veo, kling, ffmpeg, remotion")
 
     return summary

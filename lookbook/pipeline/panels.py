@@ -18,7 +18,6 @@ def detect_panels(
     Returns a list of panel dicts with bbox and extracted image paths.
     """
     import cv2
-    import numpy as np
 
     source = Path(source)
     project = Path(project)

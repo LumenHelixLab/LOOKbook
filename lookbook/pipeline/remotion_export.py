@@ -1,7 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 from typing import Any
-import json, textwrap
+import json
+import textwrap
 from ..models import write_json
 
 
@@ -43,16 +44,6 @@ def export_remotion(
     export_dir = project / "exports" / "remotion"
     src_dir = export_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
-
-    # Transition type mapping
-    TRANSITION_IMPORTS = {
-        "fade in": "fade",
-        "fade out": "fade",
-        "dissolve": "fade",
-        "wipe left": "wipe",
-        "wipe right": "wipe",
-        "cut": None,
-    }
 
     # Generate per-shot scene components
     shot_components: list[str] = []

@@ -60,7 +60,9 @@ Reject if:
 """
 
 def create_true_animation_packet(project: str | Path, target: str = "runway") -> Path:
-    project = Path(project); out = project / "prompts" / target; out.mkdir(parents=True, exist_ok=True)
+    project = Path(project)
+    out = project / "prompts" / target
+    out.mkdir(parents=True, exist_ok=True)
     (out / "TRUE_ANIMATION_PROMPT.md").write_text(PROMPT, encoding="utf-8")
     (out / "SHOT_LIST.md").write_text(SHOT_TEMPLATE, encoding="utf-8")
     (out / "QUALITY_GATE.md").write_text(QUALITY, encoding="utf-8")

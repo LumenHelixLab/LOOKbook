@@ -4,7 +4,8 @@ from typing import Any
 from ..models import write_json
 
 def analyze_source(source: str | Path, project: str | Path) -> dict[str, Any]:
-    source = Path(source); project = Path(project)
+    source = Path(source)
+    project = Path(project)
     payload: dict[str, Any] = {
         "schema": "lookbook.analysis.v0.2",
         "source_file": source.name,

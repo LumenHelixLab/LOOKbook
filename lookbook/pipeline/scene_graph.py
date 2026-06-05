@@ -68,8 +68,6 @@ def build_scene_graph(
     sorted_panel_indices = sorted(panel_map.keys())
 
     for pi in sorted_panel_indices:
-        panel = panel_map[pi]
-
         # Characters in this panel
         panel_chars = {cid for cid, pans in char_panels.items() if pi in pans}
 
