@@ -70,6 +70,7 @@ lookbook analyze-source page.png my-project
 lookbook true-animation-packet my-project --target runway
 lookbook true-animation-packet my-project --target veo
 lookbook export-web my-project my-project/exports/review.html
+lookbook generate-animatic my-project/analysis/shot_graph.json --output my-project/exports/animatic.mp4
 lookbook install-demo-lab ./lab-output
 ```
 
