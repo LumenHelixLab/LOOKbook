@@ -117,6 +117,8 @@ def process_archive(
     archive: str | Path,
     project: str | Path,
     no_cleanup: bool = False,
+    use_vision: bool = False,
+    vision_provider: str | None = None,
 ) -> dict[str, Any]:
     """Run the full lookBOOK pipeline on every page in a comic archive.
 
@@ -198,8 +200,13 @@ def process_archive(
 
         # Extract characters
         try:
-            cli_main(["extract-characters", str(img_path), str(project)])
-            char_file = project / "analysis" / "character_analysis.json"
+            char_args = ["extract-characters", str(img_path), str(project)]
+            if use_vision:
+                char_args.append("--use-vision")
+                if vision_provider:
+                    char_args.extend(["--vision-provider", vision_provider])
+            cli_main(char_args)
+            char_file = project / "analysis" / ("character_analysis_vision.json" if use_vision else "character_analysis.json")
             if char_file.exists():
                 data = json.loads(char_file.read_text(encoding="utf-8"))
                 page_result["characters"] = len(data.get("characters", []))
@@ -210,13 +217,23 @@ def process_archive(
 
     # Build scene graph + shot graph from combined analysis
     try:
-        cli_main(["build-scene-graph", str(project)])
+        scene_args = ["build-scene-graph", str(project)]
+        if use_vision:
+            scene_args.append("--use-vision")
+            if vision_provider:
+                scene_args.extend(["--vision-provider", vision_provider])
+        cli_main(scene_args)
         page_result["scene_graph"] = True
     except Exception as e:
         page_result["scene_graph_error"] = str(e)
 
     try:
-        cli_main(["build-shot-graph", str(project)])
+        shot_args = ["build-shot-graph", str(project)]
+        if use_vision:
+            shot_args.append("--use-vision")
+            if vision_provider:
+                shot_args.extend(["--vision-provider", vision_provider])
+        cli_main(shot_args)
         page_result["shot_graph"] = True
     except Exception as e:
         page_result["shot_graph_error"] = str(e)
@@ -262,5 +279,7 @@ def process_archive(
     print(f"  Total OCR blocks: {total_ocr}")
     print(f"  Total character clusters: {total_chars}")
     print("  Exports: runway, veo, kling, ffmpeg, remotion")
+    if use_vision:
+        print(f"  Vision provider: {vision_provider or 'config default'}")
 
     return summary

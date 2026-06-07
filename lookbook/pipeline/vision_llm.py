@@ -10,6 +10,27 @@ from typing import List, Dict, Optional
 
 from ..config import get_config, get_api_key
 
+# Optional dependencies — module-level with graceful fallback
+try:
+    from openai import OpenAI as _OpenAIClient
+except Exception:
+    _OpenAIClient = None
+
+try:
+    import anthropic as _anthropic
+except Exception:
+    _anthropic = None
+
+try:
+    import google.generativeai as _genai
+except Exception:
+    _genai = None
+
+try:
+    from PIL import Image as _PILImage
+except Exception:
+    _PILImage = None
+
 
 class VisionAnalyzer(ABC):
     """Abstract base for vision LLM providers."""
@@ -68,11 +89,9 @@ class VisionAnalyzer(ABC):
 class OpenAIVisionAnalyzer(VisionAnalyzer):
     def __init__(self, model: Optional[str] = None, max_tokens: int = 2048):
         super().__init__(model or 'gpt-4o', max_tokens)
-        try:
-            from openai import OpenAI
-            self.client = OpenAI(api_key=get_api_key('openai'))
-        except Exception as e:
-            raise RuntimeError(f"OpenAI client unavailable: {e}")
+        if _OpenAIClient is None:
+            raise RuntimeError("OpenAI client unavailable. Install: pip install openai")
+        self.client = _OpenAIClient(api_key=get_api_key('openai'))
 
     def _call_vision(self, image_path: str, prompt: str) -> str:
         b64 = self._encode_image(image_path)
@@ -99,11 +118,9 @@ class OpenAIVisionAnalyzer(VisionAnalyzer):
 class ClaudeVisionAnalyzer(VisionAnalyzer):
     def __init__(self, model: Optional[str] = None, max_tokens: int = 2048):
         super().__init__(model or 'claude-3-opus-20240229', max_tokens)
-        try:
-            import anthropic
-            self.client = anthropic.Anthropic(api_key=get_api_key('claude'))
-        except Exception as e:
-            raise RuntimeError(f"Anthropic client unavailable: {e}")
+        if _anthropic is None:
+            raise RuntimeError("Anthropic client unavailable. Install: pip install anthropic")
+        self.client = _anthropic.Anthropic(api_key=get_api_key('claude'))
 
     def _call_vision(self, image_path: str, prompt: str) -> str:
         b64 = self._encode_image(image_path)
@@ -132,16 +149,15 @@ class ClaudeVisionAnalyzer(VisionAnalyzer):
 class GeminiVisionAnalyzer(VisionAnalyzer):
     def __init__(self, model: Optional[str] = None, max_tokens: int = 2048):
         super().__init__(model or 'gemini-1.5-pro-latest', max_tokens)
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=get_api_key('gemini'))
-            self.client = genai.GenerativeModel(self.model)
-        except Exception as e:
-            raise RuntimeError(f"Gemini client unavailable: {e}")
+        if _genai is None:
+            raise RuntimeError("Gemini client unavailable. Install: pip install google-generativeai")
+        _genai.configure(api_key=get_api_key('gemini'))
+        self.client = _genai.GenerativeModel(self.model)
 
     def _call_vision(self, image_path: str, prompt: str) -> str:
-        from PIL import Image
-        img = Image.open(image_path)
+        if _PILImage is None:
+            raise RuntimeError("PIL unavailable. Install: pip install Pillow")
+        img = _PILImage.open(image_path)
         response = self.client.generate_content([prompt, img])
         # Gemini pricing varies; use rough estimate
         self.cost_usd += 0.002  # placeholder per call

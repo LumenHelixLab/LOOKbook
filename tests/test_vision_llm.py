@@ -12,8 +12,9 @@ from lookbook.pipeline.vision_llm import (
 
 
 class TestOpenAIVisionAnalyzer:
-    @patch('lookbook.pipeline.vision_llm.OpenAI')
-    def test_describe_panel(self, mock_openai_class):
+    @patch('lookbook.pipeline.vision_llm._OpenAIClient')
+    @patch.object(OpenAIVisionAnalyzer, '_encode_image', return_value='fakeb64')
+    def test_describe_panel(self, mock_b64, mock_openai_class):
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content="A dark alley scene."))]
@@ -28,8 +29,9 @@ class TestOpenAIVisionAnalyzer:
         assert result["source"] == "OpenAIVisionAnalyzer"
         assert result["cost_usd"] > 0
 
-    @patch('lookbook.pipeline.vision_llm.OpenAI')
-    def test_extract_characters(self, mock_openai_class):
+    @patch('lookbook.pipeline.vision_llm._OpenAIClient')
+    @patch.object(OpenAIVisionAnalyzer, '_encode_image', return_value='fakeb64')
+    def test_extract_characters(self, mock_b64, mock_openai_class):
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content="Character A: hero."))]
@@ -43,8 +45,9 @@ class TestOpenAIVisionAnalyzer:
 
 
 class TestClaudeVisionAnalyzer:
-    @patch('lookbook.pipeline.vision_llm.anthropic.Anthropic')
-    def test_describe_panel(self, mock_anthropic_class):
+    @patch('lookbook.pipeline.vision_llm._anthropic.Anthropic')
+    @patch.object(ClaudeVisionAnalyzer, '_encode_image', return_value='fakeb64')
+    def test_describe_panel(self, mock_b64, mock_anthropic_class):
         mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.content = [MagicMock(text="A rainy rooftop chase.")]
@@ -59,8 +62,8 @@ class TestClaudeVisionAnalyzer:
 
 
 class TestGeminiVisionAnalyzer:
-    @patch('lookbook.pipeline.vision_llm.genai')
-    @patch('lookbook.pipeline.vision_llm.Image')
+    @patch('lookbook.pipeline.vision_llm._genai')
+    @patch('lookbook.pipeline.vision_llm._PILImage')
     def test_describe_panel(self, mock_image, mock_genai):
         mock_model = MagicMock()
         mock_response = MagicMock(text="A futuristic cityscape.")
@@ -79,7 +82,7 @@ class TestFallback:
             get_analyzer("unknown_provider")
 
     @patch.dict('os.environ', {'OPENAI_API_KEY': 'sk-test'})
-    @patch('lookbook.pipeline.vision_llm.OpenAI')
+    @patch('lookbook.pipeline.vision_llm._OpenAIClient')
     def test_get_analyzer_openai(self, mock_openai):
         mock_client = MagicMock()
         mock_openai.return_value = mock_client

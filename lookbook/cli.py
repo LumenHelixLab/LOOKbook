@@ -18,6 +18,13 @@ from .pipeline.comfyui_export import export_comfyui
 from .pipeline.ffmpeg_export import export_ffmpeg
 from .pipeline.remotion_export import export_remotion
 from .pipeline.archive import list_pages, process_archive
+from .pipeline.vision_enhanced import (
+    analyze_source_vision,
+    extract_characters_vision,
+    build_scene_graph_vision,
+    build_shot_graph_vision,
+)
+from .pipeline.vision_cache import VisionCache
 from .lab import install_demo_lab
 
 
@@ -86,33 +93,68 @@ def cmd_detect_panels(args):
 
 
 def cmd_extract_characters(args):
-    chars = extract_characters(args.source, args.project, similarity_threshold=args.threshold)
-    print(f"Extracted {len(chars)} character clusters → project/analysis/character_analysis.json")
+    if args.use_vision:
+        chars = extract_characters_vision(args.project, provider=args.vision_provider)
+        path = Path(args.project) / "analysis" / "character_analysis_vision.json"
+        print(f"Extracted {len(chars)} vision characters → {path}")
+        cost = path.read_text(encoding="utf-8") if path.exists() else "{}"
+        cost_data = __import__("json").loads(cost)
+        print(f"  Vision calls: {cost_data.get('vision_calls', '?')}, cost: ~${cost_data.get('vision_cost_usd', '?')} USD")
+    else:
+        chars = extract_characters(args.source, args.project, similarity_threshold=args.threshold)
+        print(f"Extracted {len(chars)} character clusters → project/analysis/character_analysis.json")
     for c in chars[:5]:
-        print(f"  {c['character_id']}: {c['appearances']} appearances")
+        print(f"  {c.get('character_id', c.get('name', '?'))}: {c['appearances']} appearances")
     if len(chars) > 5:
         print(f"  ... and {len(chars) - 5} more")
 
 
 def cmd_build_scene_graph(args):
-    scenes = build_scene_graph(args.project)
-    print(f"Built {len(scenes)} scenes → project/analysis/scene_graph.json")
+    if args.use_vision:
+        scenes = build_scene_graph_vision(args.project, provider=args.vision_provider)
+        path = Path(args.project) / "analysis" / "scene_graph_vision.json"
+        print(f"Built {len(scenes)} vision scenes → {path}")
+    else:
+        scenes = build_scene_graph(args.project)
+        print(f"Built {len(scenes)} scenes → project/analysis/scene_graph.json")
     for s in scenes:
         print(
-            f"  Scene {s['scene_index']}: {s['panel_count']} panels, {len(s['characters'])} characters"
+            f"  Scene {s['scene_index']}: {s['panel_count']} panels, {len(s.get('characters', []))} characters"
         )
 
 
 def cmd_build_shot_graph(args):
-    shots = build_shot_graph(args.project)
+    if args.use_vision:
+        shots = build_shot_graph_vision(args.project, provider=args.vision_provider)
+        path = Path(args.project) / "analysis" / "shot_graph_vision.json"
+        print(f"Built {len(shots)} vision shots → {path}")
+    else:
+        shots = build_shot_graph(args.project)
+        print(f"Built {len(shots)} shots → project/analysis/shot_graph.json")
     if shots:
         total_dur = sum(s["duration_seconds"] for s in shots)
-        print(f"Built {len(shots)} shots ({total_dur:.1f}s) → project/analysis/shot_graph.json")
-        print(f"  Total duration: {total_dur:.1f}s @ {24}fps = {int(total_dur * 24)} frames")
+        print(f"  Total duration: {total_dur:.1f}s @ 24fps = {int(total_dur * 24)} frames")
         for s in shots[:5]:
             print(
-                f"  Shot {s['shot_index']}: {s['type']} ({s['duration_seconds']}s) — {s['camera']}"
+                f"  Shot {s['shot_index']}: {s['type']} ({s['duration_seconds']}s) — {s.get('camera', 'N/A')}"
             )
+
+
+def cmd_vision_cache(args):
+    cache = VisionCache(Path(args.project) / "analysis" / "vision_cache")
+    if args.clear:
+        n = cache.clear()
+        print(f"Cleared {n} cached vision entries")
+    else:
+        stats = cache.stats()
+        print(f"Vision cache: {stats['entries']} entries, {stats['total_size_bytes'] / 1024:.1f} KB")
+
+
+def cmd_analyze_vision(args):
+    result = analyze_source_vision(args.source, args.project, provider=args.vision_provider)
+    print("Vision analysis complete → project/analysis/source_analysis_vision.json")
+    print(result.get("description", "")[:500])
+    print(f"\nCost: ~${result.get('cost_usd', '?')} USD")
 
 
 def cmd_export_runway(args):
@@ -242,15 +284,32 @@ def build_parser():
     p.add_argument("source")
     p.add_argument("project")
     p.add_argument("--threshold", type=float, default=0.3)
+    p.add_argument("--use-vision", action="store_true", help="Use vision LLM instead of perceptual hashing")
+    p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
     p.set_defaults(func=cmd_extract_characters)
 
     p = sub.add_parser("build-scene-graph")
     p.add_argument("project")
+    p.add_argument("--use-vision", action="store_true", help="Use vision LLM for narrative scene grouping")
+    p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
     p.set_defaults(func=cmd_build_scene_graph)
 
     p = sub.add_parser("build-shot-graph")
     p.add_argument("project")
+    p.add_argument("--use-vision", action="store_true", help="Use vision LLM for director-level shot analysis")
+    p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
     p.set_defaults(func=cmd_build_shot_graph)
+
+    p = sub.add_parser("analyze-vision")
+    p.add_argument("source")
+    p.add_argument("project")
+    p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
+    p.set_defaults(func=cmd_analyze_vision)
+
+    p = sub.add_parser("vision-cache")
+    p.add_argument("project")
+    p.add_argument("--clear", action="store_true", help="Clear all cached vision results")
+    p.set_defaults(func=cmd_vision_cache)
 
     # Phase D — Generation Integration commands
     p = sub.add_parser("export-runway")
@@ -297,6 +356,8 @@ def build_parser():
         action="store_true",
         help="Keep extracted page files after processing",
     )
+    p.add_argument("--use-vision", action="store_true", help="Run vision-enhanced pipeline stages")
+    p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
     p.set_defaults(func=cmd_process_archive)
 
     return parser
