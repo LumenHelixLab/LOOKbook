@@ -30,6 +30,7 @@ from .pipeline.docs_export import export_docs
 from .lab import install_demo_lab
 from .lab_server import run_lab_server
 from .telemetry import session_summary
+from .video.animatic import build_animatic
 
 
 def cmd_init(args):
@@ -258,6 +259,23 @@ def cmd_process_archive(args):
     print("  Exports ready in project/exports/*/")
 
 
+def cmd_generate_animatic(args):
+    result = build_animatic(
+        args.shot_graph,
+        args.output,
+        clip_duration=args.duration,
+        width=args.width,
+        height=args.height,
+        fps=args.fps,
+        font_path=args.font,
+        keep_clips=args.keep_clips,
+    )
+    print(f"Animatic generated: {result['output_path']}")
+    print(f"  Shots: {result['total_shots']}")
+    print(f"  Duration: {result['total_duration_seconds']:.1f}s @ {result['fps']}fps")
+    print(f"  Resolution: {result['width']}x{result['height']}")
+
+
 def build_parser():
     parser = argparse.ArgumentParser(
         prog="lookbook",
@@ -406,6 +424,23 @@ def build_parser():
     p.add_argument("--use-vision", action="store_true", help="Run vision-enhanced pipeline stages")
     p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"])
     p.set_defaults(func=cmd_process_archive)
+
+    # M5 — Animatic Generator
+    p = sub.add_parser("generate-animatic")
+    p.add_argument("shot_graph", help="Path to shot_graph.json")
+    p.add_argument("--output", "-o", required=True, help="Output MP4 path")
+    p.add_argument(
+        "--duration",
+        type=float,
+        default=3.0,
+        help="Seconds per shot (default 3.0)",
+    )
+    p.add_argument("--width", type=int, default=640, help="Width (default 640)")
+    p.add_argument("--height", type=int, default=360, help="Height (default 360)")
+    p.add_argument("--fps", type=int, default=24, help="FPS (default 24)")
+    p.add_argument("--font", default=None, help="Path to a TTF font")
+    p.add_argument("--keep-clips", action="store_true", help="Keep intermediate shot MP4s")
+    p.set_defaults(func=cmd_generate_animatic)
 
     return parser
 

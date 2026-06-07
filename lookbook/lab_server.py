@@ -11,6 +11,8 @@ Endpoints:
   GET  /api/project/{id}  — read project analysis JSONs
   GET  /api/export/{id}   — list export artifacts
   POST /api/vision        — run vision LLM on uploaded image
+  POST /api/animatic      — generate animatic MP4 from shot JSON
+  GET  /api/animatic/{id} — download generated animatic MP4
 """
 
 from __future__ import annotations
@@ -30,6 +32,7 @@ from .pipeline.ocr import extract_text
 from .pipeline.panels import detect_panels
 from .pipeline.vision_enhanced import analyze_source_vision
 from .pipeline.director_ai import generate_director_decisions
+from .video.animatic import build_animatic
 
 
 PROJECTS_ROOT = Path(tempfile.gettempdir()) / "lookbook_lab_projects"
@@ -70,6 +73,26 @@ def _read_multipart_image(handler) -> tuple[Path, Path]:
             init_project(project_dir, f"lab-{project_id}")
             return img_path, project_dir
     raise ValueError("No file found in upload")
+
+
+def _read_multipart_json(handler) -> dict:
+    """Naive multipart parser that extracts the first JSON file upload."""
+    content_type = handler.headers.get("Content-Type", "")
+    if "boundary=" not in content_type:
+        raise ValueError("Missing boundary")
+    boundary = content_type.split("boundary=")[1].encode()
+    length = int(handler.headers.get("Content-Length", 0))
+    data = handler.rfile.read(length)
+
+    parts = data.split(b"--" + boundary)
+    for part in parts:
+        if b"filename=" in part:
+            header_end = part.find(b"\r\n\r\n")
+            if header_end == -1:
+                continue
+            file_data = part[header_end + 4 :].rstrip(b"\r\n")
+            return json.loads(file_data.decode("utf-8"))
+    raise ValueError("No JSON file found in upload")
 
 
 class LabHandler(BaseHTTPRequestHandler):
@@ -114,6 +137,24 @@ class LabHandler(BaseHTTPRequestHandler):
                 if platform_dir.is_dir():
                     artifacts[platform_dir.name] = [f.name for f in platform_dir.iterdir()]
             _json_response(self, 200, {"project_id": project_id, "artifacts": artifacts})
+            return
+
+        if path.startswith("/api/animatic/"):
+            project_id = path.split("/")[-1]
+            project_dir = PROJECTS_ROOT / project_id
+            if not project_dir.exists():
+                _json_response(self, 404, {"error": "Project not found"})
+                return
+            animatic_path = project_dir / "animatic.mp4"
+            if not animatic_path.exists():
+                _json_response(self, 404, {"error": "Animatic not found"})
+                return
+            self.send_response(200)
+            self.send_header("Content-Type", "video/mp4")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(animatic_path.stat().st_size))
+            self.end_headers()
+            self.wfile.write(animatic_path.read_bytes())
             return
 
         _json_response(self, 404, {"error": "Not found"})
@@ -161,6 +202,56 @@ class LabHandler(BaseHTTPRequestHandler):
                     return
                 decision = generate_director_decisions(project_dir, target=target)
                 _json_response(self, 200, decision.model_dump())
+                return
+
+            if path == "/api/animatic":
+                content_type = self.headers.get("Content-Type", "")
+                if "multipart/form-data" in content_type:
+                    shot_data = _read_multipart_json(self)
+                else:
+                    body_len = int(self.headers.get("Content-Length", 0))
+                    body = self.rfile.read(body_len)
+                    req = json.loads(body)
+                    project_id = req.get("project_id")
+                    if project_id:
+                        project_dir = PROJECTS_ROOT / project_id
+                        if not project_dir.exists():
+                            _json_response(self, 404, {"error": "Project not found"})
+                            return
+                        shot_graph_path = project_dir / "analysis" / "shot_graph.json"
+                        if not shot_graph_path.exists():
+                            _json_response(self, 404, {"error": "Shot graph not found"})
+                            return
+                        shot_data = json.loads(shot_graph_path.read_text(encoding="utf-8"))
+                    else:
+                        shot_data = req.get("shot_graph")
+                        if not shot_data:
+                            _json_response(self, 400, {"error": "Missing shot_graph or project_id"})
+                            return
+
+                project_id = str(uuid.uuid4())[:8]
+                project_dir = PROJECTS_ROOT / project_id
+                project_dir.mkdir(parents=True, exist_ok=True)
+                shot_graph_path = project_dir / "shot_graph.json"
+                shot_graph_path.write_text(json.dumps(shot_data), encoding="utf-8")
+
+                output_path = project_dir / "animatic.mp4"
+                result = build_animatic(
+                    shot_graph_path,
+                    output_path,
+                    clip_duration=shot_data.get("clip_duration", 3.0),
+                )
+                _json_response(
+                    self,
+                    200,
+                    {
+                        "project_id": project_id,
+                        "animatic_path": str(output_path),
+                        "preview_url": f"/api/animatic/{project_id}",
+                        "total_shots": result["total_shots"],
+                        "total_duration_seconds": result["total_duration_seconds"],
+                    },
+                )
                 return
 
             _json_response(self, 404, {"error": "Not found"})
