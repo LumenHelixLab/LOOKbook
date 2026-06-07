@@ -6,7 +6,7 @@ import base64
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
 from ..config import get_config, get_api_key
 
@@ -22,9 +22,11 @@ except Exception:
     _anthropic = None
 
 try:
-    import google.generativeai as _genai
+    from google import genai as _genai
+    from google.genai import types as _genai_types
 except Exception:
     _genai = None
+    _genai_types = None
 
 try:
     from PIL import Image as _PILImage
@@ -150,18 +152,30 @@ class GeminiVisionAnalyzer(VisionAnalyzer):
     def __init__(self, model: Optional[str] = None, max_tokens: int = 2048):
         super().__init__(model or 'gemini-1.5-pro-latest', max_tokens)
         if _genai is None:
-            raise RuntimeError("Gemini client unavailable. Install: pip install google-generativeai")
-        _genai.configure(api_key=get_api_key('gemini'))
-        self.client = _genai.GenerativeModel(self.model)
+            raise RuntimeError("Gemini client unavailable. Install: pip install google-genai")
+        self.client = _genai.Client(api_key=get_api_key('gemini'))
 
     def _call_vision(self, image_path: str, prompt: str) -> str:
         if _PILImage is None:
             raise RuntimeError("PIL unavailable. Install: pip install Pillow")
+        if _genai_types is None:
+            raise RuntimeError("Gemini client unavailable. Install: pip install google-genai")
+        import io
+
         img = _PILImage.open(image_path)
-        response = self.client.generate_content([prompt, img])
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG')
+        image_bytes = buf.getvalue()
+        image_part = _genai_types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+        assert self.model is not None
+        contents: List[Any] = [prompt, image_part]
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=contents
+        )
         # Gemini pricing varies; use rough estimate
         self.cost_usd += 0.002  # placeholder per call
-        return response.text
+        return response.text or ""
 
 
 def get_analyzer(provider: Optional[str] = None) -> VisionAnalyzer:

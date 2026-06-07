@@ -62,13 +62,14 @@ class TestClaudeVisionAnalyzer:
 
 
 class TestGeminiVisionAnalyzer:
-    @patch('lookbook.pipeline.vision_llm._genai')
     @patch('lookbook.pipeline.vision_llm._PILImage')
-    def test_describe_panel(self, mock_image, mock_genai):
-        mock_model = MagicMock()
+    @patch('lookbook.pipeline.vision_llm._genai_types')
+    @patch('lookbook.pipeline.vision_llm._genai')
+    def test_describe_panel(self, mock_genai, mock_types, mock_image):
+        mock_client = MagicMock()
         mock_response = MagicMock(text="A futuristic cityscape.")
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_genai.Client.return_value = mock_client
 
         analyzer = GeminiVisionAnalyzer()
         result = analyzer.describe_panel("dummy.jpg")
