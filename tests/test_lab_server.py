@@ -60,7 +60,7 @@ class TestLabServer:
 
     def test_post_analyze_no_file(self, client):
         status, body = client("POST", "/api/analyze", data=b"")
-        assert status == 500
+        assert status == 400
         assert "error" in body
 
     def test_api_director_missing_project(self, client):
