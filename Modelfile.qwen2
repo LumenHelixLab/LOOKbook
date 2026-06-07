@@ -1,3 +1,0 @@
-FROM qwen2:7b-instruct
-PARAMETER num_ctx 64000
-PARAMETER num_predict 4096
