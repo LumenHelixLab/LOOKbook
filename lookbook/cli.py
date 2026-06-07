@@ -26,6 +26,7 @@ from .pipeline.vision_enhanced import (
 )
 from .pipeline.vision_cache import VisionCache
 from .pipeline.director_ai import export_director_packet
+from .pipeline.docs_export import export_docs
 from .lab import install_demo_lab
 from .lab_server import run_lab_server
 from .telemetry import session_summary
@@ -91,6 +92,11 @@ def cmd_telemetry(args):
         print("  Exports:")
         for platform, count in stats['exports'].items():
             print(f"    {platform}: {count}")
+
+
+def cmd_export_docs(args):
+    path = export_docs(args.project, output_name=args.output)
+    print(f"Exported news & docs page: {path}")
 
 
 def cmd_extract_text(args):
