@@ -55,6 +55,17 @@ class TestCLIErrors:
         for name, sub in subparser_action.choices.items():
             assert sub.description or sub.prog, f"Sub-command {name} lacks help text"
 
+    def test_exit_4_on_permission_denied(self, tmp_path: Path, monkeypatch):
+        """PermissionError should exit with code 4."""
+
+        def _raise_perm(*args, **kwargs):
+            raise PermissionError("Access denied")
+
+        monkeypatch.setattr("lookbook.cli.shutil.copy2", _raise_perm)
+        with pytest.raises(SystemExit) as exc_info:
+            main(["analyze-source", str(tmp_path / "src.png"), str(tmp_path / "proj")])
+        assert exc_info.value.code == 4
+
     def test_exit_1_on_generic_error(self, tmp_path: Path, monkeypatch):
         """Unhandled exceptions should exit with code 1."""
         def _boom(*args, **kwargs):
@@ -64,3 +75,19 @@ class TestCLIErrors:
         with pytest.raises(SystemExit) as exc_info:
             main(["export-runway", str(tmp_path)])
         assert exc_info.value.code == 1
+
+    def test_subcommand_help_invocations(self):
+        """Every sub-command should respond to --help with exit code 0."""
+        import argparse
+
+        parser = build_parser()
+        subparser_action = None
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                subparser_action = action
+                break
+        assert subparser_action is not None
+        for name in subparser_action.choices:
+            with pytest.raises(SystemExit) as exc_info:
+                main([name, "--help"])
+            assert exc_info.value.code == 0, f"Sub-command {name} --help did not exit cleanly"
