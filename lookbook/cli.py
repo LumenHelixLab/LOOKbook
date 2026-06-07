@@ -25,7 +25,10 @@ from .pipeline.vision_enhanced import (
     build_shot_graph_vision,
 )
 from .pipeline.vision_cache import VisionCache
+from .pipeline.director_ai import export_director_packet
 from .lab import install_demo_lab
+from .lab_server import run_lab_server
+from .telemetry import session_summary
 
 
 def cmd_init(args):
@@ -66,6 +69,28 @@ def cmd_demo(args):
 
 def cmd_install_demo_lab(args):
     print(f"Installed demo lab: {install_demo_lab(args.output)}")
+
+
+def cmd_lab_server(args):
+    run_lab_server(port=args.port)
+
+
+def cmd_director_ai(args):
+    path = export_director_packet(args.project, target=args.target)
+    print(f"Director AI packet exported: {path}")
+
+
+def cmd_telemetry(args):
+    stats = session_summary()
+    print(f"Session: {stats['session']}")
+    print(f"  Events: {stats['events']}")
+    print(f"  Vision calls: {stats['vision_calls']}")
+    print(f"  Vision cost: ~${stats['vision_cost_usd']} USD")
+    print(f"  Cache hits/misses: {stats['cache_hits']}/{stats['cache_misses']}")
+    if stats['exports']:
+        print("  Exports:")
+        for platform, count in stats['exports'].items():
+            print(f"    {platform}: {count}")
 
 
 def cmd_extract_text(args):
@@ -252,6 +277,22 @@ def build_parser():
         choices=["runway", "veo", "gemini", "kling", "pika", "luma"],
     )
     p.set_defaults(func=cmd_true_animation_packet)
+
+    p = sub.add_parser("lab-server")
+    p.add_argument("--port", type=int, default=8042)
+    p.set_defaults(func=cmd_lab_server)
+
+    p = sub.add_parser("director-ai")
+    p.add_argument("project")
+    p.add_argument(
+        "--target",
+        default="runway",
+        choices=["runway", "veo", "kling", "pika", "luma"],
+    )
+    p.set_defaults(func=cmd_director_ai)
+
+    p = sub.add_parser("telemetry")
+    p.set_defaults(func=cmd_telemetry)
 
     p = sub.add_parser("export-web")
     p.add_argument("project")

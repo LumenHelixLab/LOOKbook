@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Any
 import json
 from ..models import write_json
+from .common import resolve_shot_graph
+from .director_ai import NEGATIVE_PROMPTS
 
 
 def export_runway(
@@ -13,6 +15,7 @@ def export_runway(
 
     Generates a list of image-to-video job configurations, one per shot,
     compatible with Runway's API and web UI drag-and-drop.
+    Auto-detects vision-enhanced shot graph if available.
 
     Args:
         project: lookBOOK project path
@@ -22,15 +25,7 @@ def export_runway(
         List of Runway job configs with prompts, durations, and keyframe refs.
     """
     project = Path(project)
-
-    if shot_graph_path is None:
-        shot_graph_path = project / "analysis" / "shot_graph.json"
-    if not shot_graph_path.exists():
-        raise FileNotFoundError(
-            f"Shot graph not found at {shot_graph_path}. Run 'lookbook build-shot-graph' first."
-        )
-
-    shot_data = json.loads(shot_graph_path.read_text(encoding="utf-8"))
+    _, shot_data = resolve_shot_graph(project, shot_graph_path)
     shots = shot_data.get("shots", [])
 
     if not shots:
@@ -86,6 +81,10 @@ def export_runway(
         if motion:
             prompt_parts.append(motion)
 
+        negative = shot.get("negative_prompt", "")
+        if not negative:
+            negative = NEGATIVE_PROMPTS.get("runway", NEGATIVE_PROMPTS["default"])
+
         job = {
             "job_index": i,
             "shot_index": shot["shot_index"],
@@ -93,13 +92,11 @@ def export_runway(
             "duration_seconds": shot["duration_seconds"],
             "frame_count": int(shot["duration_seconds"] * 24),
             "prompt": " ".join(prompt_parts),
-            "negative_prompt": (
-                "slideshow, pan and zoom only, still image, static, "
-                "character design changes, morphing, duplicated limbs, distorted faces"
-            ),
+            "negative_prompt": negative,
             "panel_refs": shot.get("panels", []),
             "transition": shot.get("transition_in", "cut"),
             "characters": characters,
+            "director_notes": shot.get("director_notes", {}),
         }
         runway_jobs.append(job)
 

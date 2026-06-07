@@ -24,20 +24,38 @@ def get_config():
             'max_tokens': 2048,
             'temperature': 0.3,
         },
-        'fallback': {'enabled': True, 'provider': 'classical'}
+        'fallback': {'enabled': True, 'provider': 'classical'},
+        'quality': {
+            'preset': 'high',
+            'motion_threshold': 2,
+            'min_duration': 1.0,
+            'max_duration': 10.0,
+        },
+        'exporters': {
+            'runway': {'motion_boost': True, 'negative_prompt_preset': 'default'},
+            'veo': {'prose_style': 'cinematic', 'negative_prompt_preset': 'default'},
+            'kling': {'keyword_density': 'high', 'negative_prompt_preset': 'default'},
+        },
+        'lab': {'port': 8042, 'cors': True},
+        'telemetry': {'enabled': True, 'log_dir': '~/.lookbook/telemetry'},
     }
 
     if yaml and config_path.exists():
         with open(config_path) as f:
             loaded = yaml.safe_load(f) or {}
-        defaults['vision'].update(loaded.get('vision', {}))
-        defaults['fallback'].update(loaded.get('fallback', {}))
+        for key in defaults:
+            if isinstance(defaults[key], dict):
+                defaults[key].update(loaded.get(key, {}))
+            else:
+                defaults[key] = loaded.get(key, defaults[key])
 
     # Override with env vars
     if os.getenv('LOOKBOOK_VISION_PROVIDER'):
         defaults['vision']['provider'] = os.getenv('LOOKBOOK_VISION_PROVIDER')
     if os.getenv('LOOKBOOK_VISION_MODEL'):
         defaults['vision']['model'] = os.getenv('LOOKBOOK_VISION_MODEL')
+    if os.getenv('LOOKBOOK_TELEMETRY_ENABLED'):
+        defaults['telemetry']['enabled'] = os.getenv('LOOKBOOK_TELEMETRY_ENABLED').lower() in ('1', 'true', 'yes')
 
     _CONFIG = defaults
     return _CONFIG

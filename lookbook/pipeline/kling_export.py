@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Any
 import json
 from ..models import write_json
+from .common import resolve_shot_graph
+from .director_ai import NEGATIVE_PROMPTS
 
 
 def export_kling(
@@ -15,6 +17,7 @@ def export_kling(
     - Kling: short, keyword-heavy, motion-first
     - Pika: descriptive, cinematic, emoji-friendly
     - Luma: structured, technical, camera-specific
+    Auto-detects vision-enhanced shot graph if available.
 
     Args:
         project: lookBOOK project path
@@ -24,13 +27,7 @@ def export_kling(
         Dict with keys 'kling', 'pika', 'luma', each containing prompt entries.
     """
     project = Path(project)
-
-    if shot_graph_path is None:
-        shot_graph_path = project / "analysis" / "shot_graph.json"
-    if not shot_graph_path.exists():
-        raise FileNotFoundError(f"Shot graph not found at {shot_graph_path}.")
-
-    shot_data = json.loads(shot_graph_path.read_text(encoding="utf-8"))
+    _, shot_data = resolve_shot_graph(project, shot_graph_path)
     shots = shot_data.get("shots", [])
 
     if not shots:
@@ -116,13 +113,18 @@ def export_kling(
                     f"Duration: {dur:.0f}s."
                 )
 
+            negative = shot.get("negative_prompt", "")
+            if not negative:
+                negative = NEGATIVE_PROMPTS.get(platform, NEGATIVE_PROMPTS["default"])
+
             entry = {
                 "shot_index": shot["shot_index"],
                 "type": shot.get("type", "establishing"),
                 "duration_seconds": dur,
                 "prompt": prompt,
-                "negative_prompt": config["negative"],
+                "negative_prompt": negative,
                 "panel_refs": shot.get("panels", []),
+                "director_notes": shot.get("director_notes", {}),
             }
             entries.append(entry)
 
