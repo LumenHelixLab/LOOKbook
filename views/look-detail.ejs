@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= look.title %> — lookBOOK</title>
+  <link rel="stylesheet" href="/css/broll.css">
+</head>
+<body>
+  <div class="container">
+    <a href="/api/looks">← All looks</a>
+    <h1><%= look.title %></h1>
+    <p><strong>Designer:</strong> <%= look.designer %></p>
+    <p><strong>Season:</strong> <%= look.season %></p>
+    <p><strong>Status:</strong> <%= look.status %></p>
+
+    <div class="broll-panel">
+      <h2>B-Roll Clips</h2>
+      <form id="broll-form" class="broll-form">
+        <label for="duration">Duration</label>
+        <select id="duration" name="duration">
+          <option value="3">3s</option>
+          <option value="5" selected>5s</option>
+          <option value="10">10s</option>
+        </select>
+        <button type="submit">Generate B-Roll</button>
+      </form>
+      <div id="broll-list" class="broll-list"></div>
+    </div>
+  </div>
+
+  <script>
+    const lookId = <%= look.id %>;
+
+    async function loadBroll() {
+      const res = await fetch(`/api/looks/${lookId}/broll`);
+      const clips = await res.json();
+      const list = document.getElementById('broll-list');
+      if (!clips.length) {
+        list.innerHTML = '<p class="empty">No B-Roll clips yet.</p>';
+        return;
+      }
+      list.innerHTML = clips.map(c => `
+        <div class="broll-clip" data-id="${c.id}">
+          <p class="desc">${c.scene_description}</p>
+          <span class="badge ${c.status}">${c.status}</span>
+          ${c.status === 'ready' && c.video_url ? `
+            <video src="${c.video_url}" controls width="240"></video>
+            <a class="download" href="/api/broll/${c.id}/download" target="_blank">Download</a>
+          ` : ''}
+          <button class="delete-btn" onclick="deleteClip(${c.id})">Delete</button>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('broll-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const duration = document.getElementById('duration').value;
+      await fetch(`/api/looks/${lookId}/broll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ duration: Number(duration) })
+      });
+      loadBroll();
+    });
+
+    async function deleteClip(id) {
+      if (!confirm('Delete this clip?')) return;
+      await fetch(`/api/broll/${id}`, { method: 'DELETE' });
+      loadBroll();
+    }
+
+    loadBroll();
+    setInterval(loadBroll, 5000);
+  </script>
+</body>
+</html>
