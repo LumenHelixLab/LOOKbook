@@ -25,6 +25,8 @@ tmppytest/
 tmp*/
 node_modules/
 .aider*
+agent-tools/
+terminals/
 lookbook.db
 *.db
 npm-debug.log*
