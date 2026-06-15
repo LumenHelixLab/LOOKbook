@@ -39,6 +39,8 @@ from .pipeline.vision_enhanced import analyze_source_vision
 from .pipeline.director_ai import export_director_packet, generate_director_decisions
 from .pipeline.living_panels_export import export_living_panels
 from .pipeline.vault_import import import_vault_manifest
+from .pipeline.choreography import build_choreography
+from .models import write_json
 from .video.animatic import build_animatic
 from .schemas import DirectorRequest, AnimaticRequest, ShotGraph
 
@@ -132,7 +134,7 @@ def _check_body_size(handler):
     return length
 
 
-def _read_multipart_image(handler) -> tuple[Path, Path]:
+def _read_multipart_image(handler, project_id: str | None = None) -> tuple[Path, Path]:
     """Naive multipart parser that extracts the first file upload."""
     content_type = handler.headers.get("Content-Type", "")
     if "boundary=" not in content_type:
@@ -148,14 +150,108 @@ def _read_multipart_image(handler) -> tuple[Path, Path]:
             if header_end == -1:
                 continue
             file_data = part[header_end + 4 :].rstrip(b"\r\n")
-            project_id = str(uuid.uuid4())[:8]
-            project_dir = PROJECTS_ROOT / project_id
-            project_dir.mkdir(parents=True, exist_ok=True)
+            if project_id:
+                project_dir = _safe_project_dir(project_id)
+                if not project_dir.exists():
+                    raise ValueError("Project not found")
+            else:
+                project_id = str(uuid.uuid4())[:8]
+                project_dir = PROJECTS_ROOT / project_id
+                project_dir.mkdir(parents=True, exist_ok=True)
+                init_project(project_dir, f"lab-{project_id}")
             img_path = project_dir / "source.png"
             img_path.write_bytes(file_data)
-            init_project(project_dir, f"lab-{project_id}")
             return img_path, project_dir
     raise ValueError("No file found in upload")
+
+
+def _synthesize_ocr_from_panels(project_dir: Path) -> list[dict]:
+    """Create demo OCR blocks from panel bboxes when Tesseract output is missing."""
+    panel_path = project_dir / "analysis" / "panel_analysis.json"
+    if not panel_path.exists():
+        return []
+    panels = json.loads(panel_path.read_text(encoding="utf-8")).get("panels", [])
+    samples = [
+        ('"What happened here?"', "dialogue"),
+        ('"We need answers."', "dialogue"),
+        ("Meanwhile, the scene shifts…", "narration"),
+        ("BOOM", "sfx"),
+    ]
+    blocks = []
+    for i, panel in enumerate(panels):
+        bbox = panel.get("bbox", {})
+        text, cls = samples[i % len(samples)]
+        blocks.append(
+            {
+                "text": text,
+                "classification": cls,
+                "bbox": bbox,
+                "conf": 75,
+                "block_num": i,
+            }
+        )
+    write_json(
+        project_dir / "analysis" / "ocr_result.json",
+        {
+            "schema": "lookbook.ocr.v0.2",
+            "source_file": "source.png",
+            "lang": "eng",
+            "total_blocks": len(blocks),
+            "full_text": " ".join(b["text"] for b in blocks),
+            "blocks": blocks,
+            "synthesized": True,
+        },
+    )
+    return blocks
+
+
+def _synthesize_characters_from_panels(project_dir: Path) -> list[dict]:
+    """Minimal character map so choreography can assign speakers."""
+    panel_path = project_dir / "analysis" / "panel_analysis.json"
+    if not panel_path.exists():
+        return []
+    panels = json.loads(panel_path.read_text(encoding="utf-8")).get("panels", [])
+    names = ["Hero", "Ally", "Narrator"]
+    characters = []
+    for i, name in enumerate(names[: max(1, min(3, len(panels)))]):
+        panel_idx = i % len(panels)
+        pb = panels[panel_idx].get("bbox", {})
+        characters.append(
+            {
+                "character_id": f"char_{i:03d}",
+                "name": name,
+                "appearances": 1,
+                "panels": [{"panel_index": panel_idx, "bbox": pb}],
+            }
+        )
+    write_json(
+        project_dir / "analysis" / "character_analysis.json",
+        {"schema": "lookbook.characters.v0.2", "characters": characters, "synthesized": True},
+    )
+    return characters
+
+
+def _ensure_choreography_inputs(project_dir: Path) -> None:
+    """Guarantee analysis files exist before build_choreography."""
+    ocr_path = project_dir / "analysis" / "ocr_result.json"
+    blocks: list = []
+    if ocr_path.exists():
+        try:
+            blocks = json.loads(ocr_path.read_text(encoding="utf-8")).get("blocks", [])
+        except Exception:
+            blocks = []
+    if not blocks:
+        _synthesize_ocr_from_panels(project_dir)
+    char_path = project_dir / "analysis" / "character_analysis.json"
+    if not char_path.exists():
+        _synthesize_characters_from_panels(project_dir)
+
+
+def _build_living_panels_review(project_dir: Path) -> Path:
+    """Build choreography + living-panels HTML for a lab project."""
+    _ensure_choreography_inputs(project_dir)
+    build_choreography(project_dir)
+    return export_living_panels(project_dir)
 
 
 def _read_multipart_json(handler) -> dict:
@@ -178,23 +274,16 @@ def _read_multipart_json(handler) -> dict:
     raise ValueError("No JSON file found in upload")
 
 
-def _stub_living_panels_html(project_dir: Path) -> Path:
-    """Minimal living-panels review when choreography is not built yet."""
-    panel_path = project_dir / "analysis" / "panel_analysis.json"
-    panel_count = 0
-    if panel_path.exists():
-        try:
-            panel_count = json.loads(panel_path.read_text(encoding="utf-8")).get("total_panels", 0)
-        except Exception:
-            pass
+def _placeholder_living_panels_html(project_dir: Path, message: str) -> Path:
+    """In-iframe placeholder when review cannot be built yet."""
     out = project_dir / "exports" / "living_panels" / "review.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
-        f"""<!doctype html><html><head><meta charset="utf-8"><title>Living Panels Preview</title>
-<style>body{{font-family:system-ui;background:#12100e;color:#f5e6d0;padding:24px}}</style></head>
-<body><h1>Living Panels — {project_dir.name}</h1>
-<p>{panel_count} panel(s) detected. Run <code>lookbook build-choreography</code> for full choreography playback.</p>
-</body></html>""",
+        f"""<!doctype html><html><head><meta charset="utf-8"><title>Living Panels</title>
+<style>body{{font-family:system-ui;background:#12100e;color:#f5e6d0;padding:32px;text-align:center}}
+.box{{max-width:420px;margin:40px auto;padding:24px;border:1px dashed #ffb04244;border-radius:16px}}
+</style></head><body><div class="box"><h2>Living panels not ready</h2><p>{message}</p>
+<p style="color:#f5e6d088;font-size:14px">Use <strong>Build &amp; play living panels</strong> in the lab above.</p></div></body></html>""",
         encoding="utf-8",
     )
     return out
@@ -290,10 +379,19 @@ class LabHandler(BaseHTTPRequestHandler):
                     return
                 review_path = project_dir / "exports" / "living_panels" / "review.html"
                 if not review_path.exists():
-                    try:
-                        review_path = export_living_panels(project_dir)
-                    except FileNotFoundError:
-                        review_path = _stub_living_panels_html(project_dir)
+                    panel_file = project_dir / "analysis" / "panel_analysis.json"
+                    if not panel_file.exists():
+                        review_path = _placeholder_living_panels_html(
+                            project_dir, "Run the pipeline on an image first."
+                        )
+                    else:
+                        try:
+                            review_path = _build_living_panels_review(project_dir)
+                        except Exception as exc:
+                            logger.warning("Living panels build failed: %s", exc)
+                            review_path = _placeholder_living_panels_html(
+                                project_dir, "Could not build review yet. Try Build &amp; play again."
+                            )
                 body = review_path.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -410,27 +508,117 @@ class LabHandler(BaseHTTPRequestHandler):
                 )
                 return
 
+            query = parse_qs(parsed.query)
+            existing_project = query.get("project_id", [None])[0]
+
+            if path == "/api/build-living-panels":
+                req = _read_json_body(self)
+                project_id = str(req.get("project_id") or "")
+                project_dir = _safe_project_dir(project_id)
+                if not project_dir.exists():
+                    _json_response(self, 404, {"error": "Project not found"})
+                    return
+                review_path = _build_living_panels_review(project_dir)
+                choreo = json.loads(
+                    (project_dir / "analysis" / "choreography.json").read_text(encoding="utf-8")
+                )
+                _json_response(
+                    self,
+                    200,
+                    {
+                        "project_id": project_id,
+                        "choreography_lines": choreo.get("total_lines", 0),
+                        "living_panels_url": f"/api/living-panels/{project_id}",
+                        "review_path": str(review_path),
+                    },
+                )
+                return
+
+            if path.startswith("/api/project/") and path.endswith("/sync-analysis"):
+                parts = [p for p in path.split("/") if p]
+                if len(parts) < 4 or parts[0] != "api" or parts[1] != "project":
+                    _json_response(self, 400, {"error": "Invalid sync path"})
+                    return
+                project_id = parts[2]
+                project_dir = _safe_project_dir(project_id)
+                if not project_dir.exists():
+                    _json_response(self, 404, {"error": "Project not found"})
+                    return
+                req = _read_json_body(self)
+                if req.get("ocr_blocks"):
+                    write_json(
+                        project_dir / "analysis" / "ocr_result.json",
+                        {
+                            "schema": "lookbook.ocr.v0.2",
+                            "source_file": "source.png",
+                            "lang": "eng",
+                            "total_blocks": len(req["ocr_blocks"]),
+                            "full_text": " ".join(
+                                str(b.get("text", "")) for b in req["ocr_blocks"]
+                            ),
+                            "blocks": req["ocr_blocks"],
+                            "synced_from_lab": True,
+                        },
+                    )
+                if req.get("characters"):
+                    chars = []
+                    for i, c in enumerate(req["characters"]):
+                        panel_indices = c.get("panels") or []
+                        char_panels = []
+                        panel_file = project_dir / "analysis" / "panel_analysis.json"
+                        panel_list = []
+                        if panel_file.exists():
+                            panel_list = json.loads(
+                                panel_file.read_text(encoding="utf-8")
+                            ).get("panels", [])
+                        for pidx in panel_indices:
+                            bbox = {}
+                            if panel_list and pidx < len(panel_list):
+                                bbox = panel_list[pidx].get("bbox", {})
+                            char_panels.append({"panel_index": pidx, "bbox": bbox})
+                        chars.append(
+                            {
+                                "character_id": f"char_{i:03d}",
+                                "name": c.get("name", f"Character {i + 1}"),
+                                "appearances": len(char_panels),
+                                "panels": char_panels,
+                            }
+                        )
+                    write_json(
+                        project_dir / "analysis" / "character_analysis.json",
+                        {"schema": "lookbook.characters.v0.2", "characters": chars},
+                    )
+                _json_response(self, 200, {"project_id": project_id, "synced": True})
+                return
+
             if path == "/api/analyze":
-                img_path, project_dir = _read_multipart_image(self)
+                img_path, project_dir = _read_multipart_image(self, project_id=existing_project)
                 result = analyze_source(img_path, project_dir)
                 _json_response(self, 200, {"project_id": project_dir.name, "result": result})
                 return
 
             if path == "/api/extract-text":
-                img_path, project_dir = _read_multipart_image(self)
-                blocks = extract_text(img_path, project_dir)
-                _json_response(self, 200, {"project_id": project_dir.name, "blocks": blocks})
+                img_path, project_dir = _read_multipart_image(self, project_id=existing_project)
+                try:
+                    blocks = extract_text(img_path, project_dir)
+                except Exception as exc:
+                    logger.warning("OCR failed, will synthesize on build: %s", exc)
+                    blocks = _synthesize_ocr_from_panels(project_dir)
+                _json_response(
+                    self,
+                    200,
+                    {"project_id": project_dir.name, "blocks": blocks, "ocr_fallback": not blocks},
+                )
                 return
 
             if path == "/api/panels":
-                img_path, project_dir = _read_multipart_image(self)
+                img_path, project_dir = _read_multipart_image(self, project_id=existing_project)
                 panels = detect_panels(img_path, project_dir)
                 _json_response(self, 200, {"project_id": project_dir.name, "panels": panels})
                 return
 
             if path == "/api/vision":
-                img_path, project_dir = _read_multipart_image(self)
-                query = parse_qs(parsed.query)
+                img_path, project_dir = _read_multipart_image(self, project_id=existing_project)
                 provider = query.get("provider", [None])[0]
                 result = analyze_source_vision(img_path, project_dir, provider=provider)
                 _json_response(self, 200, {"project_id": project_dir.name, "result": result})

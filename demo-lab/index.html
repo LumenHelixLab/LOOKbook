@@ -13,7 +13,7 @@
 <button class="ghost" id="btnSettings" type="button">Settings</button>
 </div>
 <h1>lookBOOK <span>Demo Lab v2</span></h1>
-<p>Drop a comic page or keyframe. When <code>lab_server.py</code> is running, analyze and panel detection hit real Python — otherwise the lab falls back to an honest browser simulation.</p>
+<p>Drop a comic page or keyframe, click <strong>Run Pipeline</strong>, then play the living-panels review below — no terminal commands required.</p>
 </header>
 
 <div class="status-bar checking" id="statusBar">
@@ -73,11 +73,25 @@
 
 <div class="three-col">
 <div class="card">
+<div class="section-header">
+<div>
 <h2>Director preview</h2>
+<p class="section-hint" id="directorStatus">Creative direction packet appears after the pipeline runs.</p>
+</div>
+</div>
 <div class="markdown-preview" id="directorPreview">Run pipeline to preview director packet.</div>
 </div>
-<div class="card" style="grid-column: span 2">
+<div class="card living-panels-card" style="grid-column: span 2">
+<div class="section-header">
+<div>
 <h2>Living panels</h2>
+<p class="section-hint" id="livingStatus">Run the pipeline to generate a playable storyboard review.</p>
+</div>
+<div class="btn-row" style="margin:0">
+<button class="primary" id="btnBuildLiving" type="button" disabled>Build &amp; play living panels</button>
+<button class="ghost" id="btnRefreshLiving" type="button" disabled>Refresh</button>
+</div>
+</div>
 <iframe class="living-frame" id="livingFrame" title="Living panels review" sandbox="allow-scripts allow-same-origin"></iframe>
 </div>
 </div>

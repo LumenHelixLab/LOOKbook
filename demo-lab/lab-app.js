@@ -27,6 +27,10 @@ const statusText = document.getElementById('statusText');
 const directorPreview = document.getElementById('directorPreview');
 const livingFrame = document.getElementById('livingFrame');
 const vaultInput = document.getElementById('vaultManifest');
+const livingStatus = document.getElementById('livingStatus');
+const directorStatus = document.getElementById('directorStatus');
+const btnBuildLiving = document.getElementById('btnBuildLiving');
+const btnRefreshLiving = document.getElementById('btnRefreshLiving');
 
 function loadSettings() {
   try {
@@ -87,13 +91,100 @@ function resetAll() {
   ['s1', 's2', 's3', 's4', 's5', 's6', 's7'].forEach((id) => setStep(id, ''));
 }
 
-async function uploadToLab(path, file) {
+async function uploadToLab(path, file, reuseProjectId = null) {
   const fd = new FormData();
   fd.append('file', file);
-  const res = await fetch(`${settings.labUrl || LAB_API}${path}`, { method: 'POST', body: fd });
+  const qs = reuseProjectId ? `?project_id=${encodeURIComponent(reuseProjectId)}` : '';
+  const res = await fetch(`${settings.labUrl || LAB_API}${path}${qs}`, { method: 'POST', body: fd });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || `Request failed: ${path}`);
   return data;
+}
+
+function ocrBlocksForServer() {
+  const srcW = imageMeta.width || canvas.width;
+  const srcH = imageMeta.height || canvas.height;
+  const scaleX = srcW / canvas.width;
+  const scaleY = srcH / canvas.height;
+  return ocrBlocks.map((b) => {
+    const panelIdx = b.panel ?? 0;
+    const panel = panels[panelIdx];
+    const bbox = panel
+      ? {
+          x: Math.round(panel.x * scaleX),
+          y: Math.round(panel.y * scaleY),
+          w: Math.round(panel.w * scaleX),
+          h: Math.round(panel.h * scaleY),
+        }
+      : {
+          x: Math.round((b.x || 0) * scaleX),
+          y: Math.round((b.y || 0) * scaleY),
+          w: 120,
+          h: 40,
+        };
+    return {
+      text: b.text,
+      classification: b.classification,
+      conf: b.conf,
+      bbox,
+    };
+  });
+}
+
+async function syncAnalysisToServer() {
+  if (!projectId || !labOnline) return;
+  const res = await fetch(`${settings.labUrl || LAB_API}/api/project/${projectId}/sync-analysis`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ocr_blocks: ocrBlocksForServer(),
+      characters,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to sync analysis');
+}
+
+function setLivingUi(state, detail = '') {
+  if (!livingStatus) return;
+  const labels = {
+    idle: 'Run the pipeline on an image to generate a playable storyboard review.',
+    building: 'Building choreography and living-panels player…',
+    ready: 'Playback ready — use Play in the panel below.',
+    error: detail || 'Could not build living panels.',
+  };
+  livingStatus.textContent = labels[state] || detail;
+  if (btnBuildLiving) btnBuildLiving.disabled = state === 'building' || !projectId;
+  if (btnRefreshLiving) btnRefreshLiving.disabled = !projectId || state === 'building';
+}
+
+async function buildLivingPanels() {
+  if (!projectId || !labOnline) {
+    showToast('Run the pipeline on an image first');
+    return;
+  }
+  setLivingUi('building');
+  setStep('s5', 'active');
+  try {
+    await syncAnalysisToServer();
+    const res = await fetch(`${settings.labUrl || LAB_API}/api/build-living-panels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: projectId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Build failed');
+    setStep('s5', 'done');
+    setStep('s6', 'active');
+    loadLivingPanels(true);
+    setStep('s6', 'done');
+    setLivingUi('ready', `${data.choreography_lines} line(s) · press Play in the player`);
+    showToast(`Living panels ready (${data.choreography_lines} lines)`);
+  } catch (e) {
+    setStep('s5', '');
+    setLivingUi('error', e.message);
+    showToast(e.message);
+  }
 }
 
 function mapServerPanels(serverPanels, scaleX, scaleY) {
@@ -261,9 +352,11 @@ async function loadDirectorPreview() {
   }
 }
 
-function loadLivingPanels() {
+function loadLivingPanels(force = false) {
   if (!projectId || !labOnline || !livingFrame) return;
-  livingFrame.src = `${settings.labUrl || LAB_API}/api/living-panels/${projectId}`;
+  const base = settings.labUrl || LAB_API;
+  livingFrame.classList.remove('empty');
+  livingFrame.src = `${base}/api/living-panels/${projectId}${force ? `?t=${Date.now()}` : ''}`;
 }
 
 async function runPipeline() {
@@ -282,7 +375,7 @@ async function runPipeline() {
       setStep('s1', 'done');
 
       setStep('s2', 'active');
-      const panelData = await uploadToLab('/api/panels', currentFile);
+      const panelData = await uploadToLab('/api/panels', currentFile, projectId);
       projectId = panelData.project_id || projectId;
       panels = mapServerPanels(panelData.panels, scaleX, scaleY);
       setStep('s2', 'done');
@@ -290,8 +383,9 @@ async function runPipeline() {
 
       setStep('s3', 'active');
       try {
-        const ocrData = await uploadToLab('/api/extract-text', currentFile);
+        const ocrData = await uploadToLab('/api/extract-text', currentFile, projectId);
         ocrBlocks = mapOcrBlocks(ocrData.blocks, panels, scaleX, scaleY);
+        if (!ocrBlocks.length) ocrBlocks = simulateOCR(panels);
       } catch {
         ocrBlocks = simulateOCR(panels);
       }
@@ -301,10 +395,16 @@ async function runPipeline() {
       characters = simulateCharacters(panels);
       setStep('s4', 'done');
 
-      setStep('s5', 'done');
-      setStep('s6', 'done');
+      if (btnBuildLiving) btnBuildLiving.disabled = false;
+      if (btnRefreshLiving) btnRefreshLiving.disabled = false;
+
+      await buildLivingPanels();
       await loadDirectorPreview();
-      loadLivingPanels();
+      if (directorStatus) {
+        directorStatus.textContent = directorPreview?.textContent?.startsWith('#')
+          ? 'Director packet generated — scroll to review.'
+          : 'Director notes available when shot graph exists.';
+      }
       setStep('s7', 'done');
       showResults(true);
     } else {
@@ -384,8 +484,7 @@ function handleExport(kind) {
   }
   const base = settings.labUrl || LAB_API;
   if (kind === 'living') {
-    loadLivingPanels();
-    livingFrame?.scrollIntoView({ behavior: 'smooth' });
+    buildLivingPanels().then(() => livingFrame?.scrollIntoView({ behavior: 'smooth' }));
   } else if (kind === 'director') {
     loadDirectorPreview();
     directorPreview?.scrollIntoView({ behavior: 'smooth' });
@@ -536,6 +635,9 @@ function bindUi() {
   vaultInput?.addEventListener('change', (e) => {
     if (e.target.files[0]) importVaultManifest(e.target.files[0]);
   });
+
+  btnBuildLiving?.addEventListener('click', buildLivingPanels);
+  btnRefreshLiving?.addEventListener('click', () => loadLivingPanels(true));
 }
 
 async function boot() {

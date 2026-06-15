@@ -72,6 +72,46 @@ class TestLabServer:
         assert resp.status == 200
         assert "Demo Lab" in html
 
+    def test_build_living_panels(self, client, tmp_path: Path, monkeypatch):
+        import threading
+        import urllib.request
+        from http.server import HTTPServer
+        from PIL import Image, ImageDraw
+
+        monkeypatch.setattr(
+            "lookbook.lab_server.PROJECTS_ROOT", tmp_path / "lab_projects"
+        )
+        project_id = "abc12345"
+        project_dir = tmp_path / "lab_projects" / project_id
+        project_dir.mkdir(parents=True)
+        init_project(project_dir, "test")
+        img = Image.new("RGB", (400, 300), "white")
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([10, 10, 190, 290], outline="black", width=4)
+        draw.rectangle([210, 10, 390, 290], outline="black", width=4)
+        img.save(project_dir / "source.png")
+
+        from lookbook.pipeline.panels import detect_panels
+
+        detect_panels(project_dir / "source.png", project_dir)
+
+        server = HTTPServer(("127.0.0.1", 0), LabHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        host, port = server.server_address
+        payload = json.dumps({"project_id": project_id}).encode()
+        req = urllib.request.Request(
+            f"http://{host}:{port}/api/build-living-panels",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        body = json.loads(resp.read().decode())
+        server.shutdown()
+        assert body["choreography_lines"] >= 1
+        assert (project_dir / "analysis" / "choreography.json").exists()
+
     def test_options_cors(self, client):
         status, _ = client("OPTIONS", "/api/analyze")
         assert status == 204
