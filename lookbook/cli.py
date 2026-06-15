@@ -23,6 +23,7 @@ from .pipeline.comfyui_export import export_comfyui
 from .pipeline.ffmpeg_export import export_ffmpeg
 from .pipeline.remotion_export import export_remotion
 from .pipeline.cineforge_export import CineforgeIngestError, export_cineforge
+from .pipeline.vault_import import import_vault_manifest
 from .pipeline.archive import list_pages, process_archive
 from .pipeline.vision_enhanced import (
     analyze_source_vision,
@@ -94,6 +95,24 @@ def _handle_errors(func):
 @_handle_errors
 def cmd_init(args):
     print(f"Created lookBOOK project: {init_project(args.path, args.name)}")
+
+
+@_handle_errors
+def cmd_import_vault(args):
+    manifest = Path(args.manifest)
+    if not manifest.exists():
+        raise FileNotFoundError(f"Manifest not found: {manifest}")
+    result = import_vault_manifest(
+        args.project,
+        manifest,
+        init_if_missing=not args.no_init,
+        project_name=args.name,
+    )
+    print(f"Vault import complete: {result['files_written']} file(s)")
+    print(f"  Project: {result['project']}")
+    print(f"  Record: {result['record_path']}")
+    for item in result.get("written", []):
+        print(f"  Source: {item['path']}")
 
 
 @_handle_errors
@@ -427,6 +446,20 @@ def build_parser():
     p.add_argument("path", help="Directory path for the new project")
     p.add_argument("--name", default="Untitled lookBOOK Project", help="Project name")
     p.set_defaults(func=cmd_init)
+
+    p = sub.add_parser(
+        "import-vault",
+        help="Import NOTEtoolsLM lookbook.source_manifest.v1 into project/source/",
+    )
+    p.add_argument("manifest", help="Path to lookbook.source_manifest.v1 JSON")
+    p.add_argument("project", help="Path to the lookBOOK project directory")
+    p.add_argument("--name", default=None, help="Project name when initializing a new directory")
+    p.add_argument(
+        "--no-init",
+        action="store_true",
+        help="Fail if project directory does not exist (default: init new project)",
+    )
+    p.set_defaults(func=cmd_import_vault)
 
     p = sub.add_parser("analyze-source", help="Analyze a source file and copy it into the project")
     p.add_argument("source", help="Path to the source file")
