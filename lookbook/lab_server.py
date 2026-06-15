@@ -14,6 +14,8 @@ Endpoints:
   POST /api/director      — generate director decisions
   POST /api/animatic      — generate animatic MP4 from shot JSON
   GET  /api/animatic/{id} — download generated animatic MP4
+  GET  /                  — demo-lab UI (index.html)
+  GET  /health            — server health check
 """
 
 from __future__ import annotations
@@ -45,7 +47,55 @@ logger = logging.getLogger("lookbook.lab_server")
 PROJECTS_ROOT = Path(tempfile.gettempdir()) / "lookbook_lab_projects"
 PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEMO_LAB_ROOT = REPO_ROOT / "demo-lab"
+
 MAX_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
+
+_STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".svg": "image/svg+xml",
+    ".ico": "image/x-icon",
+}
+
+
+def _resolve_demo_lab_file(url_path: str) -> Path | None:
+    """Map a URL path to a file under demo-lab/ (path traversal safe)."""
+    if not DEMO_LAB_ROOT.is_dir():
+        return None
+    clean = url_path.split("?", 1)[0]
+    if clean in ("", "/"):
+        clean = "/index.html"
+    if clean.startswith("/demo-lab/"):
+        clean = clean[len("/demo-lab") :]
+    if not clean.startswith("/"):
+        clean = "/" + clean
+    rel = Path(clean.lstrip("/"))
+    if ".." in rel.parts:
+        return None
+    candidate = (DEMO_LAB_ROOT / rel).resolve()
+    try:
+        candidate.relative_to(DEMO_LAB_ROOT.resolve())
+    except ValueError:
+        return None
+    if candidate.is_file():
+        return candidate
+    return None
+
+
+def _serve_static_file(handler, file_path: Path):
+    body = file_path.read_bytes()
+    handler.send_response(200)
+    handler.send_header("Content-Type", _STATIC_TYPES.get(file_path.suffix.lower(), "application/octet-stream"))
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
 
 
 def _json_response(handler, status: int, payload: dict):
@@ -297,6 +347,11 @@ class LabHandler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", str(animatic_path.stat().st_size))
                 self.end_headers()
                 self.wfile.write(animatic_path.read_bytes())
+                return
+
+            static_file = _resolve_demo_lab_file(path)
+            if static_file is not None:
+                _serve_static_file(self, static_file)
                 return
 
             _json_response(self, 404, {"error": "Not found"})
