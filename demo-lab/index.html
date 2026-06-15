@@ -57,7 +57,7 @@
 <div class="step" id="s1">Analyze</div>
 <div class="step" id="s2">Panels</div>
 <div class="step" id="s3">OCR</div>
-<div class="step" id="s4">Characters</div>
+<div class="step" id="s4">Interpret</div>
 <div class="step" id="s5">Choreo</div>
 <div class="step" id="s6">Living</div>
 <div class="step" id="s7">Export</div>
@@ -92,7 +92,7 @@
 <button class="ghost" id="btnRefreshLiving" type="button" disabled>Refresh</button>
 </div>
 </div>
-<iframe class="living-frame" id="livingFrame" title="Living panels review" sandbox="allow-scripts allow-same-origin"></iframe>
+<iframe class="living-frame" id="livingFrame" title="Living panels review" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 </div>
 </div>
 </div>
@@ -121,6 +121,8 @@
 <h3>Lab settings</h3>
 <label for="settingLabUrl">Lab server URL</label>
 <input id="settingLabUrl" type="url" value="http://localhost:8042">
+<label for="settingCineforgeUrl">CineForge backend URL</label>
+<input id="settingCineforgeUrl" type="url" value="http://127.0.0.1:8765">
 <label for="settingQuality">Quality preset</label>
 <select id="settingQuality">
 <option value="fast">Fast</option>
@@ -128,8 +130,9 @@
 <option value="quality">Quality</option>
 </select>
 <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
-<input type="checkbox" id="settingVision"> Enable vision LLM pass (when configured)
+<input type="checkbox" id="settingVision"> Enable vision LLM — semantic page read, characters, scenes (needs API key)
 </label>
+<p id="visionKeyHint" style="font-size:12px;color:var(--muted);margin:6px 0 0 28px;line-height:1.4"></p>
 <div class="btn-row" style="margin-top:16px">
 <button class="primary" id="btnSaveSettings" type="button">Save</button>
 <button class="ghost" id="btnCloseSettings" type="button">Close</button>
@@ -137,6 +140,6 @@
 </div>
 </div>
 
-<script src="lab-app.js"></script>
+<script src="lab-app.js?v=10"></script>
 </body>
 </html>

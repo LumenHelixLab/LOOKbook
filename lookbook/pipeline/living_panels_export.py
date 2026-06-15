@@ -33,6 +33,14 @@ def export_living_panels(
     if shot_path.exists():
         shots = json.loads(shot_path.read_text(encoding="utf-8")).get("shots", [])
 
+    page_summary = ""
+    interp_path = analysis / "page_interpretation.json"
+    if interp_path.exists():
+        try:
+            page_summary = json.loads(interp_path.read_text(encoding="utf-8")).get("page_description") or ""
+        except Exception:
+            page_summary = ""
+
     if output is None:
         output = project / "exports" / "living_panels" / "review.html"
     output = Path(output)
@@ -64,6 +72,7 @@ def export_living_panels(
         "choreography": choreography,
         "panels": panel_assets,
         "shots": shots,
+        "page_summary": page_summary,
     }
     payload_json = json.dumps(payload, ensure_ascii=False)
     title = html.escape(project.name)
@@ -205,6 +214,7 @@ def export_living_panels(
     <div>
       <div class="badge">lookBOOK · living panels</div>
       <h1>{title}</h1>
+      <p id="page-summary" style="margin:6px 0 0;font-size:13px;opacity:.72;max-width:52rem;line-height:1.45"></p>
     </div>
     <div id="camera-tag">camera: static</div>
   </header>
@@ -223,6 +233,7 @@ def export_living_panels(
         <button id="btn-prev" type="button">Prev</button>
         <button id="btn-next" type="button">Next</button>
       </div>
+      <div id="play-status" style="font-size:11px;opacity:.65">Ready — press Play to hear dialogue</div>
       <div id="timeline"></div>
     </aside>
   </main>
@@ -234,7 +245,10 @@ def export_living_panels(
     const voiceCast = data.choreography.voice_cast || {{}};
     const panels = data.panels || [];
     const shots = data.shots || [];
+    const pageSummary = data.page_summary || '';
     const stage = document.getElementById('stage');
+    const pageSummaryEl = document.getElementById('page-summary');
+    if (pageSummaryEl && pageSummary) pageSummaryEl.textContent = pageSummary;
     const timeline = document.getElementById('timeline');
     const speakerEl = document.getElementById('speaker');
     const lineTextEl = document.getElementById('line-text');
@@ -243,6 +257,7 @@ def export_living_panels(
     const btnPause = document.getElementById('btn-pause');
     const btnPrev = document.getElementById('btn-prev');
     const btnNext = document.getElementById('btn-next');
+    const playStatus = document.getElementById('play-status');
 
     let lineIndex = 0;
     let utterance = null;
@@ -334,6 +349,9 @@ def export_living_panels(
         spokenWord += 1;
         renderWords(line, spokenWord);
       }};
+      utterance.onstart = () => {{
+        if (playStatus) playStatus.textContent = 'Speaking… watch the highlighted panel';
+      }};
       utterance.onend = () => {{
         btnPlay.disabled = false;
         btnPause.disabled = true;
@@ -341,8 +359,13 @@ def export_living_panels(
           spokenWord = -1;
           setLine(lineIndex + 1);
           speakCurrent();
+        }} else if (playStatus) {{
+          playStatus.textContent = 'Finished — use Prev/Next or Play again';
         }}
       }};
+      if (!('speechSynthesis' in window) && playStatus) {{
+        playStatus.textContent = 'Voice unavailable in this browser — use timeline to step lines';
+      }}
       speechSynthesis.speak(utterance);
       btnPlay.disabled = true;
       btnPause.disabled = false;

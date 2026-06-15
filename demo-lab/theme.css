@@ -299,7 +299,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .living-frame {
   width: 100%;
-  min-height: 360px;
+  min-height: 520px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #000;

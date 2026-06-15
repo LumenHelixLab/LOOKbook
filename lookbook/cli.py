@@ -1,5 +1,6 @@
 from __future__ import annotations
 import argparse
+import json
 import logging
 import shutil
 import sys
@@ -165,6 +166,45 @@ def cmd_lab_server(args):
 def cmd_director_ai(args):
     path = export_director_packet(args.project, target=args.target)
     print(f"Director AI packet exported: {path}")
+
+
+@_handle_errors
+def cmd_director_graph_run(args):
+    from .director_graph_client import probe_director_graph, run_director_graph
+    from .models import write_json
+    from pathlib import Path
+
+    probe = probe_director_graph()
+    if not probe.get("online"):
+        raise RuntimeError(
+            "Director graph sidecar offline — run: python director-graph/server.py"
+        )
+    project = Path(args.project)
+    result = run_director_graph(
+        str(project.resolve()),
+        profile_id=args.profile,
+        auto_approve=not args.no_approve,
+        dry_run=args.dry_run,
+        target=args.target,
+    )
+    review = (result.get("state") or {}).get("review_summary") or {}
+    write_json(
+        project / "analysis" / "director_graph_run.json",
+        {
+            "schema": "lookbook.director_graph_run.v1",
+            "ok": bool(result.get("ok")),
+            "profile_id": args.profile,
+            "dry_run": args.dry_run,
+            "review_summary": review,
+            "error": result.get("error"),
+        },
+    )
+    if not result.get("ok"):
+        raise RuntimeError(result.get("error") or "director graph run failed")
+    print(f"Director graph OK — profile {args.profile}")
+    print(f"  Shots: {review.get('shot_count', '?')}")
+    if review.get("exports"):
+        print(f"  Exports: {json.dumps(review['exports'], default=str)}")
 
 
 @_handle_errors
@@ -479,6 +519,21 @@ def build_parser():
     p = sub.add_parser("lab-server", help="Start the lookBOOK demo lab HTTP server")
     p.add_argument("--port", type=int, default=8042, help="Server port (default: 8042)")
     p.set_defaults(func=cmd_lab_server)
+
+    p = sub.add_parser(
+        "director-graph-run",
+        help="Run director-graph LangGraph sidecar on a project (:7791)",
+    )
+    p.add_argument("project", help="Path to the lookBOOK project directory")
+    p.add_argument(
+        "--profile",
+        default="classical-runway",
+        help="Graph profile (default: classical-runway)",
+    )
+    p.add_argument("--target", default=None, help="Director target override (runway, veo, …)")
+    p.add_argument("--dry-run", action="store_true", help="Plan-only dry run (no exports)")
+    p.add_argument("--no-approve", action="store_true", help="Require interactive export approval")
+    p.set_defaults(func=cmd_director_graph_run)
 
     p = sub.add_parser("director-ai", help="Export a Director AI decision packet")
     p.add_argument("project", help="Path to the lookBOOK project directory")

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageDraw
 
 from lookbook.pipeline.vault_import import (
     SOURCE_MANIFEST_SCHEMA,
@@ -54,3 +56,33 @@ def test_import_from_json_path(tmp_path: Path, sample_manifest: dict) -> None:
     project = tmp_path / "from-file"
     result = import_vault_manifest(project, manifest_path)
     assert result["files_written"] == 1
+
+
+def test_import_image_seeds_source_png(tmp_path: Path) -> None:
+    img = Image.new("RGB", (120, 80), "white")
+    ImageDraw.Draw(img).rectangle([8, 8, 112, 72], outline="black", width=3)
+    buf = Path(tmp_path / "tiny.png")
+    img.save(buf)
+
+    manifest = {
+        "format": SOURCE_MANIFEST_SCHEMA,
+        "title": "Vault with page",
+        "source_type": "research",
+        "files": [
+            {
+                "name": "brief.md",
+                "kind": "md",
+                "content": "# Brief\nResearch notes.\n",
+            },
+            {
+                "name": "page-one.png",
+                "kind": "png",
+                "content_base64": base64.b64encode(buf.read_bytes()).decode("ascii"),
+            },
+        ],
+    }
+    project = tmp_path / "vault-image"
+    result = import_vault_manifest(project, manifest)
+    assert result["files_written"] >= 2
+    assert (project / "source" / "page-one.png").exists()
+    assert (project / "source.png").exists()

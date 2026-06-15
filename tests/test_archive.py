@@ -112,6 +112,51 @@ class TestProcessArchive:
 
         monkeypatch.setattr("lookbook.cli.main", _safe_main)
 
+    def test_process_archive_runs_choreography(self, sample_cbz, tmp_path, monkeypatch):
+        """Verify process-archive invokes build_choreography after page OCR."""
+        from lookbook.pipeline.archive import process_archive
+
+        calls: list[str] = []
+
+        def _fake_build_choreography(project, **kwargs):
+            calls.append(str(project))
+            choreo_file = Path(project) / "analysis" / "choreography.json"
+            choreo_file.parent.mkdir(parents=True, exist_ok=True)
+            choreo_file.write_text(
+                json.dumps(
+                    {
+                        "schema": "lookbook.choreography.v0.1",
+                        "total_lines": 0,
+                        "lines": [],
+                        "voice_cast": {},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            return []
+
+        def _fake_export_living_panels(project, output=None):
+            out = Path(project) / "exports" / "living_panels" / "review.html"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text("<html></html>", encoding="utf-8")
+            return out
+
+        monkeypatch.setattr(
+            "lookbook.pipeline.choreography.build_choreography",
+            _fake_build_choreography,
+        )
+        monkeypatch.setattr(
+            "lookbook.pipeline.living_panels_export.export_living_panels",
+            _fake_export_living_panels,
+        )
+
+        project = tmp_path / "test_project"
+        result = process_archive(sample_cbz, project, no_cleanup=True)
+
+        assert len(calls) == 1
+        assert calls[0] == str(project)
+        assert result["total_pages"] == 2
+
     def test_process_archive_basic(self, sample_cbz, tmp_path):
         """Test process-archive creates project and runs pipeline."""
         from lookbook.pipeline.archive import process_archive

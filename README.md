@@ -52,15 +52,30 @@ lookbook true-animation-packet my-demo --target runway
 lookbook export-web my-demo my-demo/exports/review.html
 ```
 
-## Browser Demo Lab
+## Browser Demo Lab (Gen 2)
 
-Open `demo-lab/index.html`, or run:
+Install lab dependencies, preflight, then start (API + UI on port **8042**):
 
-```bash
-python scripts/run_demo_lab.py
+```powershell
+pwsh scripts/install-demo-lab-fresh.ps1   # fresh machine: pip [lab] + preflight + health v5
+pwsh scripts/start-demo-lab.ps1           # single-server guard on :8042
+# Open http://localhost:8042 — status must show Lab ready v5
 ```
 
-The lab lets users drop in a page or keyframe and generate a true-animation handoff packet locally.
+Unified pipeline: `POST /api/pipeline/run` (panels → OCR → interpret in one call).
+
+### CI / E2E
+
+```powershell
+cd D:\projects\lookBOOK
+pip install -e ".[lab,dev]"
+python scripts/generate_comic_fixture.py
+python -m pytest tests/test_lab_server.py tests/test_scene_graph_ocr.py -q
+npm install
+npx playwright test tests/e2e/demo-lab.spec.mjs
+```
+
+Session plan: `docs/PIPELINE_SESSION_PLAN_20.md` (S1–S5 done). Research→Story: `pwsh D:\projects\scripts\pipeline-research-story.ps1`
 
 ## CLI
 
