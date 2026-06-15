@@ -14,12 +14,15 @@ from .pipeline.panels import detect_panels
 from .pipeline.characters import extract_characters
 from .pipeline.scene_graph import build_scene_graph
 from .pipeline.shot_graph import build_shot_graph
+from .pipeline.choreography import build_choreography
+from .pipeline.living_panels_export import export_living_panels
 from .pipeline.runway_export import export_runway
 from .pipeline.veo_export import export_veo
 from .pipeline.kling_export import export_kling
 from .pipeline.comfyui_export import export_comfyui
 from .pipeline.ffmpeg_export import export_ffmpeg
 from .pipeline.remotion_export import export_remotion
+from .pipeline.cineforge_export import CineforgeIngestError, export_cineforge
 from .pipeline.archive import list_pages, process_archive
 from .pipeline.vision_enhanced import (
     analyze_source_vision,
@@ -225,6 +228,22 @@ def cmd_build_scene_graph(args):
 
 
 @_handle_errors
+def cmd_build_choreography(args):
+    lines = build_choreography(args.project)
+    print(f"Built {len(lines)} choreography lines → project/analysis/choreography.json")
+    for ln in lines[:5]:
+        print(f"  Line {ln['line_index']}: {ln['speaker']} · panel {ln['panel_index']} — {ln['text'][:60]}")
+    if len(lines) > 5:
+        print(f"  ... and {len(lines) - 5} more")
+
+
+@_handle_errors
+def cmd_export_living_panels(args):
+    out = export_living_panels(args.project, output=args.output)
+    print(f"Living panels review → {out}")
+
+
+@_handle_errors
 def cmd_build_shot_graph(args):
     if args.use_vision:
         shots = build_shot_graph_vision(args.project, provider=args.vision_provider)
@@ -324,6 +343,34 @@ def cmd_export_remotion(args):
 
 
 @_handle_errors
+def cmd_export_cineforge(args):
+    try:
+        result = export_cineforge(
+            args.project,
+            output=args.output,
+            shot_graph_path=args.shot_graph,
+            replace_existing_shots=not args.no_replace,
+            push=args.push,
+            cineforge_url=args.cineforge_url,
+            project_id=args.project_id,
+            api_key=args.api_key,
+        )
+    except CineforgeIngestError as exc:
+        print(f"CineForge ingest error: {exc}")
+        sys.exit(1)
+
+    print(f"Exported {result['shot_count']} shots → {result['output_path']}")
+    print(f"  Source graph: {result['shot_graph_path']}")
+    if result.get("pushed"):
+        ingest = result.get("ingest_response") or {}
+        print(f"  Pushed to: {result.get('cineforge_url')}")
+        print(f"  CineForge project: {result.get('cineforge_project_id')}")
+        print(f"  Ingested shots: {ingest.get('shot_count', '?')}")
+        if ingest.get("treatment_id"):
+            print(f"  Treatment: {ingest['treatment_id']}")
+
+
+@_handle_errors
 def cmd_list_pages(args):
     pages = list_pages(args.archive)
     print(f"Found {len(pages)} pages in {Path(args.archive).name}:")
@@ -334,7 +381,14 @@ def cmd_list_pages(args):
 
 @_handle_errors
 def cmd_process_archive(args):
-    result = process_archive(args.archive, args.project, no_cleanup=args.keep)
+    result = process_archive(
+        args.archive,
+        args.project,
+        no_cleanup=args.keep,
+        use_vision=args.use_vision,
+        vision_provider=args.vision_provider,
+        living_panels=args.living_panels,
+    )
     print(f"\nDone. Project: {result['project']}")
     print("  Exports ready in project/exports/*/")
 
@@ -447,6 +501,19 @@ def build_parser():
     p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"], help="Vision LLM provider")
     p.set_defaults(func=cmd_build_scene_graph)
 
+    p = sub.add_parser("build-choreography", help="Build speech-driven choreography from OCR + panels")
+    p.add_argument("project", help="Path to the lookBOOK project directory")
+    p.set_defaults(func=cmd_build_choreography)
+
+    p = sub.add_parser("export-living-panels", help="Export browser living-panels HTML review")
+    p.add_argument("project", help="Path to the lookBOOK project directory")
+    p.add_argument(
+        "--output",
+        default=None,
+        help="Output HTML path (default: project/exports/living_panels/review.html)",
+    )
+    p.set_defaults(func=cmd_export_living_panels)
+
     p = sub.add_parser("build-shot-graph", help="Build a director-level shot graph")
     p.add_argument("project", help="Path to the lookBOOK project directory")
     p.add_argument("--use-vision", action="store_true", help="Use vision LLM for director-level shot analysis")
@@ -496,6 +563,48 @@ def build_parser():
     p.add_argument("--fps", type=int, default=24, help="Frames per second (default: 24)")
     p.set_defaults(func=cmd_export_remotion)
 
+    p = sub.add_parser(
+        "export-cineforge",
+        help="Export shot graph for CineForge ingest (file default; optional live push)",
+    )
+    p.add_argument("project", help="Path to the lookBOOK project directory")
+    p.add_argument(
+        "--output",
+        default=None,
+        help="Output JSON path (default: project/exports/cineforge/ingest.json)",
+    )
+    p.add_argument(
+        "--shot-graph",
+        default=None,
+        help="Path to shot_graph.json (auto-detects vision graph when omitted)",
+    )
+    p.add_argument(
+        "--push",
+        action="store_true",
+        help="POST ingest payload to a running CineForge API",
+    )
+    p.add_argument(
+        "--cineforge-url",
+        default=None,
+        help="CineForge API base URL (default: CINEFORGE_URL env or http://127.0.0.1:8000)",
+    )
+    p.add_argument(
+        "--project-id",
+        default=None,
+        help="CineForge project UUID (required with --push)",
+    )
+    p.add_argument(
+        "--api-key",
+        default=None,
+        help="Optional X-API-Key header (default: CINEFORGE_API_KEY env)",
+    )
+    p.add_argument(
+        "--no-replace",
+        action="store_true",
+        help="Set replace_existing_shots=false on ingest",
+    )
+    p.set_defaults(func=cmd_export_cineforge)
+
     # Batch archive commands
     p = sub.add_parser("list-pages", help="List pages inside a comic archive")
     p.add_argument("archive", help="Path to the archive file")
@@ -511,6 +620,11 @@ def build_parser():
     )
     p.add_argument("--use-vision", action="store_true", help="Run vision-enhanced pipeline stages")
     p.add_argument("--vision-provider", default=None, choices=["openai", "claude", "gemini"], help="Vision LLM provider")
+    p.add_argument(
+        "--living-panels",
+        action="store_true",
+        help="Export living panels review HTML (default: always exported to exports/living_panels/review.html)",
+    )
     p.set_defaults(func=cmd_process_archive)
 
     # M5 — Animatic Generator

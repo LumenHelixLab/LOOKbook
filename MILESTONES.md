@@ -30,3 +30,9 @@
 - [x] `telemetry.py` — session cost tracking, cache hit/miss logging, stage timings
 - [x] `config.yaml` — quality presets, exporter settings, lab & telemetry config
 - [x] Comprehensive test coverage for all new modules
+
+## M6: CineForge Bridge ✅
+- [x] `cineforge_export.py` — validate shot graph, file export, optional HTTP push
+- [x] `export-cineforge` CLI (`--push`, `--cineforge-url`, `--project-id`)
+- [x] `tests/test_cineforge_export.py`
+- [x] `docs/CINEFORGE_BRIDGE.md`

@@ -72,7 +72,19 @@ lookbook true-animation-packet my-project --target veo
 lookbook export-web my-project my-project/exports/review.html
 lookbook generate-animatic my-project/analysis/shot_graph.json --output my-project/exports/animatic.mp4
 lookbook install-demo-lab ./lab-output
+lookbook export-cineforge my-project
+lookbook export-cineforge my-project --push --project-id <cineforge-uuid>
 ```
+
+## CineForge handoff
+
+Export a validated shot graph for CineForge storyboard ingest (file by default, optional live API push):
+
+```bash
+lookbook export-cineforge my-project
+```
+
+See [`docs/CINEFORGE_BRIDGE.md`](docs/CINEFORGE_BRIDGE.md) for the full pipeline and API details.
 
 ## MoneyPrinterTurbo Integration
 

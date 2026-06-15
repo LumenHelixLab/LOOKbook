@@ -90,6 +90,24 @@ class ShotGraph(BaseModel):
     vision_calls: int | None = Field(default=None, ge=0)
 
 
+class ChoreographyLine(BaseModel):
+    line_index: int = Field(..., ge=0)
+    speaker: str = Field(default="unknown", max_length=200)
+    text: str = Field(..., min_length=1)
+    classification: str = Field(default="dialogue", max_length=100)
+    panel_index: int = Field(..., ge=0)
+    bubble_bbox: BBox = Field(default_factory=BBox)
+    word_count: int = Field(default=0, ge=0)
+    words: list[str] = Field(default_factory=list)
+
+
+class Choreography(BaseModel):
+    schema_version: str = Field(default="lookbook.choreography.v0.1", alias="schema", max_length=100)
+    total_lines: int = Field(default=0, ge=0)
+    lines: list[ChoreographyLine] = Field(default_factory=list)
+    voice_cast: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+
 class SceneGraph(BaseModel):
     schema_version: str = Field(default="lookbook.scene_graph.v0.3", alias="schema", max_length=100)
     total_scenes: int = Field(default=0, ge=0)
