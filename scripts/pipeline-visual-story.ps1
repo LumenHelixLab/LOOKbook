@@ -6,7 +6,7 @@
 
 param(
     [switch]$Push,
-    [string]$CineforgeUrl = "http://127.0.0.1:8000",
+    [string]$CineforgeUrl = "http://127.0.0.1:8765",
     [switch]$SkipTests
 )
 

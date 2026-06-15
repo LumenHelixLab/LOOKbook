@@ -14,7 +14,7 @@ from ..schemas import ShotGraph
 from .common import resolve_shot_graph
 
 CINEFORGE_EXPORT_SCHEMA = "lookbook.cineforge_export.v1"
-DEFAULT_CINEFORGE_URL = "http://127.0.0.1:8000"
+DEFAULT_CINEFORGE_URL = "http://127.0.0.1:8765"
 LOOKBOOK_SHOT_GRAPH_SCHEMA = "lookbook.shot_graph.v0.3"
 
 

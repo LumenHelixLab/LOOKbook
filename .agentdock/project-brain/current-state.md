@@ -29,8 +29,7 @@ Canonical-For-Project: true
 
 ## What Is Unverified
 
-- Live `--push` smoke against running CineForge instance (manual)
-- Portfolio E2E script (`pipeline-visual-story.ps1`) — deferred
+- None for M6 bridge (live push verified 2026-06-15 on :8765)
 
 ## Blockers
 
@@ -38,5 +37,5 @@ Canonical-For-Project: true
 
 ## Next Best Move
 
-- Portfolio script: lookBOOK export → cineforge ingest assertion in `scripts/pipeline-visual-story.ps1`
-- Optional: HOOT Discovery card for bridge health
+- Update E2E script default URL to cineforge :8765 (portfolio convention)
+- Optional: wire NOTEtoolsLM vault export into same E2E chain
