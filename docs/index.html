@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="lookBOOK is an open-source book-to-animation compiler. Extract comic panels, OCR text, track characters, build scene graphs, and export to Runway, Veo, Kling, ComfyUI, FFmpeg, and Remotion.">
 <style>
-:root{--bg:#04070c;--surface:#0a0e17;--card:#111723;--border:#1a2240;--text:#e6e0d0;--muted:#7d7a8a;--accent:#1ae0cf;--gold:#f2ba46;--pink:#f472b6;--purple:#a78bfa;--radius:14px;--font:'Inter','SF Pro','Segoe UI',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Code','SF Mono',monospace}
+:root{--portfolio-accent:#ffb042;--portfolio-surface:#12100e;--portfolio-text:#f5e6d0;--portfolio-muted:rgba(245,230,208,0.55);--lb-accent:var(--portfolio-accent);--lb-surface:var(--portfolio-surface);--lb-text:var(--portfolio-text);--lb-muted:var(--portfolio-muted);--bg:#04070c;--surface:#0a0e17;--card:#111723;--border:#1a2240;--text:var(--lb-text);--muted:var(--lb-muted);--accent:var(--lb-accent);--gold:#f2ba46;--pink:#f472b6;--purple:#a78bfa;--radius:14px;--font:'Inter','SF Pro','Segoe UI',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Code','SF Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.7;font-size:15px}
@@ -95,6 +95,7 @@ footer a{color:var(--accent)}
 <a href="#overview">Overview</a>
 <a href="#pipeline">Pipeline</a>
 <a href="#commands">CLI</a>
+<a href="#choreography">Choreography</a>
 <a href="#exports">Exports</a>
 <a href="#demo">Demo Lab</a>
 <a href="#install">Install</a>
@@ -139,6 +140,11 @@ footer a{color:var(--accent)}
 <p>Scene graphs group panels by dialogue continuity and character presence. Shot graphs generate timed camera moves, transitions, and motion directives.</p>
 </div>
 <div class="feature-card">
+<div class="icon">&#127908;</div>
+<h3>M7 Choreography Pipeline</h3>
+<p><code>build-choreography</code> links OCR dialogue to panels and speakers. Shot graphs emit one shot per choreography line; living-panels HTML and CineForge ingest bridge the review handoff.</p>
+</div>
+<div class="feature-card">
 <div class="icon">&#127760;</div>
 <h3>Multi-Platform Export</h3>
 <p>Export to Runway ML, Veo 2, Kling, Pika, Luma, ComfyUI, FFmpeg, and Remotion — each with platform-optimized prompts and workflows.</p>
@@ -166,6 +172,8 @@ footer a{color:var(--accent)}
 <span class="arrow-node">&#10132;</span>
 <span class="node gold">Scene Graph</span>
 <span class="arrow-node">&#10132;</span>
+<span class="node">Choreography</span>
+<span class="arrow-node">&#10132;</span>
 <span class="node pink">Shot Graph</span>
 <span class="arrow-node">&#10132;</span>
 <span class="node accent">Exports</span>
@@ -176,8 +184,10 @@ footer a{color:var(--accent)}
 <span class="kw">lookbook</span> extract-text source.png my_project/<br>
 <span class="kw">lookbook</span> extract-characters source.png my_project/<br>
 <span class="kw">lookbook</span> build-scene-graph my_project/<br>
+<span class="kw">lookbook</span> build-choreography my_project/<br>
 <span class="kw">lookbook</span> build-shot-graph my_project/<br>
-<span class="kw">lookbook</span> export-remotion my_project/
+<span class="kw">lookbook</span> export-living-panels my_project/<br>
+<span class="kw">lookbook</span> export-cineforge my_project/
 </div>
 <div class="code-block">
 <span class="comment"># Or batch process an entire archive</span><br>
@@ -188,7 +198,7 @@ footer a{color:var(--accent)}
 <!-- CLI Commands -->
 <section id="commands">
 <h2>CLI <span class="highlight">Reference</span></h2>
-<p class="subtitle">18 commands across scaffolding, source intelligence, and platform exports.</p>
+<p class="subtitle">21 commands across scaffolding, source intelligence, choreography review, and platform exports.</p>
 
 <div class="cmd-group">
 <h3>Scaffolding</h3>
@@ -207,7 +217,16 @@ footer a{color:var(--accent)}
 <li><span class="cmd">lookbook extract-text &lt;source&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">OCR text extraction</span></li>
 <li><span class="cmd">lookbook extract-characters &lt;source&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Extract character clusters</span></li>
 <li><span class="cmd">lookbook build-scene-graph &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Group panels into scenes</span></li>
-<li><span class="cmd">lookbook build-shot-graph &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Generate timed animation breakdown</span></li>
+<li><span class="cmd">lookbook build-shot-graph &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Generate timed animation breakdown (one shot per choreography line)</span></li>
+<li><span class="cmd">lookbook build-choreography &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Speech-driven choreography from OCR + panels</span></li>
+</ul>
+</div>
+
+<div class="cmd-group">
+<h3>Choreography &amp; Review</h3>
+<ul class="cmd-list">
+<li><span class="cmd">lookbook export-living-panels &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Self-contained browser living-panels HTML review</span></li>
+<li><span class="cmd">lookbook export-cineforge &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">CineForge storyboard ingest JSON (optional <code>--push</code>)</span></li>
 </ul>
 </div>
 
@@ -230,6 +249,43 @@ footer a{color:var(--accent)}
 <li><span class="cmd">lookbook process-archive &lt;archive&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Full pipeline on all pages</span></li>
 </ul>
 </div>
+</section>
+
+<!-- M7 Choreography -->
+<section id="choreography">
+<h2>M7 <span class="highlight">Choreography</span> Pipeline</h2>
+<p class="subtitle">Speech-driven review between scene grouping and shot timing — bridges lookBOOK analysis to CineForge living review.</p>
+<div class="feature-grid">
+<div class="feature-card">
+<div class="icon">&#127908;</div>
+<h3>build-choreography</h3>
+<p>Links dialogue and narration to panels, bubble bboxes, inferred speakers, and word lists for browser SpeechSynthesis boundary sync. Output: <code>analysis/choreography.json</code>.</p>
+</div>
+<div class="feature-card">
+<div class="icon">&#127909;</div>
+<h3>Per-Line Shot Graph</h3>
+<p>When choreography exists, <code>build-shot-graph</code> emits one timed shot per choreography line with camera moves derived from active dialogue — not just per-scene fallbacks.</p>
+</div>
+<div class="feature-card">
+<div class="icon">&#128444;</div>
+<h3>export-living-panels</h3>
+<p>Self-contained HTML review with panel overlays, voice cast, and line-by-line playback. Default: <code>exports/living_panels/review.html</code>.</p>
+</div>
+<div class="feature-card">
+<div class="icon">&#127760;</div>
+<h3>export-cineforge</h3>
+<p>Validated shot graph + choreography ingest for CineForge storyboard shots. File export by default; <code>--push --project-id</code> for live API handoff.</p>
+</div>
+</div>
+<div class="code-block">
+<span class="comment"># M7 choreography → living review → CineForge bridge</span><br>
+<span class="kw">lookbook</span> build-choreography my_project/<br>
+<span class="kw">lookbook</span> build-shot-graph my_project/<br>
+<span class="kw">lookbook</span> export-living-panels my_project/<br>
+<span class="kw">lookbook</span> export-cineforge my_project/<br>
+<span class="kw">lookbook</span> export-cineforge my_project/ --push --project-id &lt;cineforge-uuid&gt;
+</div>
+<p style="color:var(--muted);font-size:14px;margin-top:12px">See <a href="CINEFORGE_BRIDGE.md">CINEFORGE_BRIDGE.md</a> for API details and ingest payload schema.</p>
 </section>
 
 <!-- Exports -->

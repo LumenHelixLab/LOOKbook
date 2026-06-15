@@ -34,7 +34,9 @@ from .pipeline.analyze import analyze_source
 from .pipeline.ocr import extract_text
 from .pipeline.panels import detect_panels
 from .pipeline.vision_enhanced import analyze_source_vision
-from .pipeline.director_ai import generate_director_decisions
+from .pipeline.director_ai import export_director_packet, generate_director_decisions
+from .pipeline.living_panels_export import export_living_panels
+from .pipeline.vault_import import import_vault_manifest
 from .video.animatic import build_animatic
 from .schemas import DirectorRequest, AnimaticRequest, ShotGraph
 
@@ -126,6 +128,44 @@ def _read_multipart_json(handler) -> dict:
     raise ValueError("No JSON file found in upload")
 
 
+def _stub_living_panels_html(project_dir: Path) -> Path:
+    """Minimal living-panels review when choreography is not built yet."""
+    panel_path = project_dir / "analysis" / "panel_analysis.json"
+    panel_count = 0
+    if panel_path.exists():
+        try:
+            panel_count = json.loads(panel_path.read_text(encoding="utf-8")).get("total_panels", 0)
+        except Exception:
+            pass
+    out = project_dir / "exports" / "living_panels" / "review.html"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        f"""<!doctype html><html><head><meta charset="utf-8"><title>Living Panels Preview</title>
+<style>body{{font-family:system-ui;background:#12100e;color:#f5e6d0;padding:24px}}</style></head>
+<body><h1>Living Panels — {project_dir.name}</h1>
+<p>{panel_count} panel(s) detected. Run <code>lookbook build-choreography</code> for full choreography playback.</p>
+</body></html>""",
+        encoding="utf-8",
+    )
+    return out
+
+
+def _seed_project_preset(project_dir: Path, preset: str) -> dict:
+    """Seed analysis/ layout for demo-lab wizard presets."""
+    analysis = project_dir / "analysis"
+    analysis.mkdir(parents=True, exist_ok=True)
+    scaffold = {
+        "schema": "lookbook.project_scaffold.v1",
+        "preset": preset,
+        "folders": ["analysis", "source", "exports"],
+    }
+    scaffold_path = analysis / "project_scaffold.json"
+    scaffold_path.write_text(json.dumps(scaffold, indent=2), encoding="utf-8")
+    (project_dir / "source").mkdir(parents=True, exist_ok=True)
+    (project_dir / "exports").mkdir(parents=True, exist_ok=True)
+    return {"preset": preset, "scaffold_path": str(scaffold_path)}
+
+
 def _read_json_body(handler) -> dict:
     """Read and validate a JSON body for non-multipart POSTs."""
     content_type = handler.headers.get("Content-Type", "")
@@ -157,6 +197,62 @@ class LabHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         try:
+            if path == "/health":
+                _json_response(self, 200, {"ok": True, "service": "lookbook-lab"})
+                return
+
+            if path.startswith("/api/director-preview/"):
+                project_id = path.split("/")[-1]
+                query = parse_qs(parsed.query)
+                target = query.get("target", ["runway"])[0]
+                project_dir = _safe_project_dir(project_id)
+                if not project_dir.exists():
+                    _json_response(self, 404, {"error": "Project not found"})
+                    return
+                out_dir = project_dir / "exports" / "director_ai"
+                md_files = list(out_dir.glob("*.md")) if out_dir.exists() else []
+                if not md_files:
+                    try:
+                        md_path = export_director_packet(project_dir, target=target)
+                    except FileNotFoundError as exc:
+                        _json_response(self, 404, {"error": str(exc)})
+                        return
+                else:
+                    md_path = md_files[0]
+                markdown = md_path.read_text(encoding="utf-8")
+                _json_response(
+                    self,
+                    200,
+                    {
+                        "project_id": project_id,
+                        "target": target,
+                        "path": md_path.name,
+                        "markdown": markdown,
+                    },
+                )
+                return
+
+            if path.startswith("/api/living-panels/"):
+                project_id = path.split("/")[-1]
+                project_dir = _safe_project_dir(project_id)
+                if not project_dir.exists():
+                    _json_response(self, 404, {"error": "Project not found"})
+                    return
+                review_path = project_dir / "exports" / "living_panels" / "review.html"
+                if not review_path.exists():
+                    try:
+                        review_path = export_living_panels(project_dir)
+                    except FileNotFoundError:
+                        review_path = _stub_living_panels_html(project_dir)
+                body = review_path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+
             if path.startswith("/api/project/"):
                 project_id = path.split("/")[-1]
                 project_dir = _safe_project_dir(project_id)
@@ -216,6 +312,49 @@ class LabHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         try:
+            if path == "/api/new-project":
+                req = _read_json_body(self)
+                name = str(req.get("name") or "lab-project").strip()[:60] or "lab-project"
+                preset = str(req.get("preset") or "comic").strip()
+                project_id = str(uuid.uuid4())[:8]
+                project_dir = PROJECTS_ROOT / project_id
+                project_dir.mkdir(parents=True, exist_ok=True)
+                init_project(project_dir, name)
+                seed = _seed_project_preset(project_dir, preset)
+                _json_response(
+                    self,
+                    200,
+                    {"project_id": project_id, "name": name, "seed": seed},
+                )
+                return
+
+            if path == "/api/import-vault":
+                req = _read_json_body(self)
+                manifest = req.get("manifest")
+                if not isinstance(manifest, dict):
+                    raise ValueError("manifest object required")
+                project_id = req.get("project_id")
+                if project_id:
+                    project_dir = _safe_project_dir(str(project_id))
+                    if not project_dir.exists():
+                        _json_response(self, 404, {"error": "Project not found"})
+                        return
+                else:
+                    project_id = str(uuid.uuid4())[:8]
+                    project_dir = PROJECTS_ROOT / project_id
+                result = import_vault_manifest(
+                    project_dir,
+                    manifest,
+                    init_if_missing=True,
+                    project_name=manifest.get("title"),
+                )
+                _json_response(
+                    self,
+                    200,
+                    {"project_id": project_dir.name, "import": result},
+                )
+                return
+
             if path == "/api/analyze":
                 img_path, project_dir = _read_multipart_image(self)
                 result = analyze_source(img_path, project_dir)
@@ -335,6 +474,13 @@ def run_lab_server(port: int = 8042):
     except KeyboardInterrupt:
         logger.info("Shutting down lab server.")
         server.shutdown()
+
+
+if __name__ == "__main__":
+    import sys
+
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8042
+    run_lab_server(port=port)
 
 
 def start_lab_server_thread(port: int = 8042) -> Thread:
