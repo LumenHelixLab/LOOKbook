@@ -63,6 +63,7 @@ PROJECTS_ROOT.mkdir(parents=True, exist_ok=True)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEMO_LAB_ROOT = REPO_ROOT / "demo-lab"
+DEMO_LAB_REACT_ROOT = REPO_ROOT / "demo-lab-react" / "dist"
 
 MAX_BODY_SIZE = 10 * 1024 * 1024  # 10 MB
 
@@ -78,28 +79,41 @@ _STATIC_TYPES = {
 }
 
 
-def _resolve_demo_lab_file(url_path: str) -> Path | None:
-    """Map a URL path to a file under demo-lab/ (path traversal safe)."""
-    if not DEMO_LAB_ROOT.is_dir():
+def _resolve_static_under(root: Path, url_path: str, *, prefix: str = "") -> Path | None:
+    """Map a URL path to a file under root (path traversal safe)."""
+    if not root.is_dir():
         return None
     clean = url_path.split("?", 1)[0]
+    if prefix and clean.startswith(prefix):
+        clean = clean[len(prefix) :]
     if clean in ("", "/"):
         clean = "/index.html"
-    if clean.startswith("/demo-lab/"):
-        clean = clean[len("/demo-lab") :]
     if not clean.startswith("/"):
         clean = "/" + clean
     rel = Path(clean.lstrip("/"))
     if ".." in rel.parts:
         return None
-    candidate = (DEMO_LAB_ROOT / rel).resolve()
+    candidate = (root / rel).resolve()
     try:
-        candidate.relative_to(DEMO_LAB_ROOT.resolve())
+        candidate.relative_to(root.resolve())
     except ValueError:
         return None
     if candidate.is_file():
         return candidate
     return None
+
+
+def _resolve_demo_lab_file(url_path: str) -> Path | None:
+    """Map a URL path to a file under demo-lab/ (path traversal safe)."""
+    clean = url_path.split("?", 1)[0]
+    if clean.startswith("/demo-lab/"):
+        return _resolve_static_under(DEMO_LAB_ROOT, url_path, prefix="/demo-lab")
+    return _resolve_static_under(DEMO_LAB_ROOT, url_path)
+
+
+def _resolve_demo_lab_react_file(url_path: str) -> Path | None:
+    """Map /react/* to demo-lab-react/dist (Vite build)."""
+    return _resolve_static_under(DEMO_LAB_REACT_ROOT, url_path, prefix="/react")
 
 
 def _serve_static_file(handler, file_path: Path):
@@ -747,6 +761,7 @@ class LabHandler(BaseHTTPRequestHandler):
                             "living-panels-build",
                             "interpret-page",
                             "director-graph-run",
+                            "demo-lab-react",
                         ],
                         "capabilities": caps,
                     },
@@ -903,6 +918,14 @@ class LabHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(animatic_path.read_bytes())
                 return
+
+            if path == "/react" or path.startswith("/react/"):
+                react_file = _resolve_demo_lab_react_file(
+                    path if path.startswith("/react/") else "/react/index.html"
+                )
+                if react_file is not None:
+                    _serve_static_file(self, react_file)
+                    return
 
             static_file = _resolve_demo_lab_file(path)
             if static_file is not None:

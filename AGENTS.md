@@ -7,6 +7,8 @@ Canonical repo: `D:\projects\lookBOOK`
 | Item | Path / command |
 |------|----------------|
 | Server | `python -m lookbook.lab_server` → http://localhost:8042 |
+| **Ant Design UI** | `demo-lab-react/` → http://localhost:8042/react/ after `npm run build` |
+| UI skill | `D:\projects\skills\ant-design\SKILL.md` |
 | Start script | `scripts/start-demo-lab.ps1` (kills stale :8042; runs preflight first) |
 | Fresh install | `scripts/install-demo-lab-fresh.ps1` |
 | Preflight | `scripts/preflight-demo-lab.ps1` |
