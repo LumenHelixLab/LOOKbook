@@ -9,6 +9,8 @@ pip install -e "..\[lab]"
 pwsh ..\scripts\start-demo-lab.ps1
 cd demo-lab-react
 npm install
+# If build fails on Windows with missing @rc-component/*, run:
+# npm install @rc-component/mini-decimal
 npm run dev
 ```
 
