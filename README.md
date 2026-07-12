@@ -1,7 +1,11 @@
 # LOOKbook
 
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="LOOKbook logo" width="160">
+  <img src="docs/assets/hero.svg" alt="LOOKbook header" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="LOOKbook logo" width="120">
 </p>
 
 <h3 align="center">Books to motion.</h3>
@@ -9,9 +13,9 @@
 <p align="center">Open-source compiler that turns books, comics, and illustrated pages into structured animation projects.</p>
 
 <p align="center">
-  <a href="https://lumenhelixsolutions.github.io/LOOKbook/">Launch Page</a>
+  <a href="https://lumenhelixlab.github.io/LOOKbook/">Launch Page</a>
   <span> · </span>
-  <a href="https://github.com/lumenhelixsolutions/LOOKbook">GitHub</a>
+  <a href="https://github.com/lumenhelixlab/LOOKbook">GitHub</a>
   <span> · </span>
   <a href="https://lumenhelix.com">LumenHelix</a>
 </p>
@@ -31,7 +35,7 @@ LOOKbook is the LumenHelix open-source compiler for turning books, comics, and i
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+git clone https://github.com/lumenhelixlab/LOOKbook.git
 cd LOOKbook
 python3 -m venv .venv
 source .venv/bin/activate
@@ -43,7 +47,7 @@ lookbook demo my-demo
 ### Windows (PowerShell)
 
 ```powershell
-git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+git clone https://github.com/lumenhelixlab/LOOKbook.git
 Set-Location LOOKbook
 python -m venv .venv
 .venv\Scripts\activate
@@ -55,7 +59,7 @@ lookbook demo my-demo
 ### Windows (Git Bash / WSL)
 
 ```bash
-git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+git clone https://github.com/lumenhelixlab/LOOKbook.git
 cd LOOKbook
 python3 -m venv .venv
 source .venv/bin/activate
