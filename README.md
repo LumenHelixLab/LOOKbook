@@ -1,149 +1,136 @@
-<p align="center"><img src="assets/brand/lookbook-logo-horizontal.svg" alt="lookBOOK logo" width="860"></p>
+# LOOKbook
 
-<p align="center"><strong>Open-source book-to-animation compiler.</strong><br>Extract characters. Preserve scene intent. Generate true image-to-video handoff packets.</p>
+<p align="center">
+  <a href="https://lumenhelix.com">
+    <img src="docs/assets/lumenhelix-logo.svg" alt="LumenHelix Solutions" width="180">
+  </a>
+</p>
 
-<p align="center"><a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-F2C14E.svg"></a> <a href="ROADMAP.md"><img alt="Status" src="https://img.shields.io/badge/status-alpha-1AE0CF.svg"></a> <a href="docs/product/TRUE_ANIMATION_STANDARD.md"><img alt="True Animation" src="https://img.shields.io/badge/standard-true%20animation-7C5CFF.svg"></a></p>
+<h3 align="center">Open-source book-to-animation compiler.</h3>
 
-## What is lookBOOK?
+<p align="center">
+  <a href="https://lumenhelixsolutions.github.io/LOOKbook/">
+    <img src="https://img.shields.io/badge/Launch_Page-LOOKbook-00D4FF?style=flat-square&logo=githubpages&logoColor=white" alt="Launch Page">
+  </a>
+  <a href="https://lumenhelix.com">
+    <img src="https://img.shields.io/badge/Built_by-LumenHelix-7C3AED?style=flat-square" alt="Built by LumenHelix">
+  </a>
+  <img src="https://img.shields.io/badge/license-MIT-8A95A8?style=flat-square" alt="License">
+</p>
 
-**lookBOOK** is an open-source compiler layer for turning books, comics, illustrated pages, and story material into structured animation projects.
+---
 
-It is not a video model. It is the missing layer between a source page and tools like Runway, Google Flow/Veo, Kling, Pika, Luma, or local generation stacks.
+**LOOKbook** is part of the [LumenHelix Solutions](https://lumenhelix.com) portfolio — applied symbolic dynamics & reversible computation for deterministic, traceable AI systems.
 
-```text
-book / comic / illustrated page
-→ source analysis
-→ character extraction
-→ scene intent graph
-→ shot list
-→ dialogue + sound script
-→ true image-to-video handoff packet
-→ generated animated shots
-```
+LOOKbook is the LumenHelix open-source compiler for turning books, comics, and illustrated pages into structured animation projects. It extracts characters, preserves scene intent, and emits true image-to-video handoff packets for generative video pipelines.
 
-## The core standard
+## Why this exists
 
-lookBOOK is built around one hard distinction:
-
-```text
-Motion-comic preview:
-  zooms, pans, overlays, particles, still-image movement
-
-True animation:
-  characters move inside the scene
-  bodies and limbs act
-  enemies react
-  cloth/scarf/ribbon moves independently
-  dialogue timing matters
-```
-
-**Not a slideshow. Real animation planning.**
+- **Preserve creative intent.** Scene graphs and character consistency keep the story coherent across every generated shot.
+- **Stay pipeline-agnostic.** Export to Runway, Veo, Kling, Pika, Luma, or local stacks from one source of truth.
+- **Own your workflow.** Local-first Python CLI and browser lab. No mandatory cloud, no lock-in.
 
 ## Quick start
 
+Install and run LOOKbook in under two minutes.
+
+### macOS / Linux
+
 ```bash
-git clone https://github.com/your-org/lookBOOK.git
-cd lookBOOK
-python -m venv .venv
+# Clone
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+cd LOOKbook
+
+# Install & run
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,image]"
-lookbook demo my-demo
-lookbook true-animation-packet my-demo --target runway
-lookbook export-web my-demo my-demo/exports/review.html
-```
-
-## Browser Demo Lab (Gen 2)
-
-Install lab dependencies, preflight, then start (API + UI on port **8042**):
-
-```powershell
-pwsh scripts/install-demo-lab-fresh.ps1   # fresh machine: pip [lab] + preflight + health v5
-pwsh scripts/start-demo-lab.ps1           # single-server guard on :8042
-# Open http://localhost:8042 — status must show Lab ready v5
-```
-
-Unified pipeline: `POST /api/pipeline/run` (panels → OCR → interpret in one call).
-
-### CI / E2E
-
-```powershell
-cd D:\projects\lookBOOK
 pip install -e ".[lab,dev]"
-python scripts/generate_comic_fixture.py
-python -m pytest tests/test_lab_server.py tests/test_scene_graph_ocr.py -q
 npm install
-npx playwright test tests/e2e/demo-lab.spec.mjs
+lookbook demo my-demo
 ```
 
-Session plan: `docs/PIPELINE_SESSION_PLAN_20.md` (S1–S5 done). Research→Story: `pwsh D:\projects\scripts\pipeline-research-story.ps1`
+### Windows (PowerShell)
 
-## CLI
+```powershell
+# Clone
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+Set-Location LOOKbook
+
+# Install & run
+python -m venv .venv
+.venv\Scripts\pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo
+```
+
+### Windows (Git Bash / WSL)
 
 ```bash
-lookbook init my-project --name "My Animated Book"
-lookbook analyze-source page.png my-project
-lookbook true-animation-packet my-project --target runway
-lookbook true-animation-packet my-project --target veo
-lookbook export-web my-project my-project/exports/review.html
-lookbook generate-animatic my-project/analysis/shot_graph.json --output my-project/exports/animatic.mp4
-lookbook install-demo-lab ./lab-output
-lookbook export-cineforge my-project
-lookbook export-cineforge my-project --push --project-id <cineforge-uuid>
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+cd LOOKbook
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo
 ```
 
-## CineForge handoff
+> **Device note:** LOOKbook is tested on Windows 11, macOS Sonoma, Ubuntu 22.04/24.04, and modern mobile browsers.
 
-Export a validated shot graph for CineForge storyboard ingest (file by default, optional live API push):
+## Full documentation
+
+Visit the launch page for architecture, API reference, and deployment guides:  
+**https://lumenhelixsolutions.github.io/LOOKbook/**
+
+## Features
+
+| Feature | What it gives you |
+|---------|-------------------|
+| Source analysis | Ingest books, comics, and illustrated pages and break them into panels, characters, and scene intent. |
+| True animation standard | Distinguish motion-comic previews from real animation where bodies, limbs, cloth, and dialogue timing matter. |
+| Image-to-video handoff | Export structured shot packets ready for Runway, Veo, Kling, Pika, Luma, and local image-to-video stacks. |
+| Demo Lab Gen 2 | A unified pipeline server with OCR, vision interpretation, and a browser review UI on port 8042. |
+
+## Architecture at a glance
+
+```
+lookBOOK/
+├── lookbook/       Python CLI + analysis engine
+├── demo-lab/       Browser review lab (port 8042)
+├── demo-lab-react/ Ant Design UI
+├── examples/       Sample keyframes and prompt packs
+└── tools/          MoneyPrinterTurbo bridge
+```
+
+## Development
 
 ```bash
-lookbook export-cineforge my-project
+# Start the unified pipeline lab
+python -m lookbook.lab_server
+# In another terminal, build the React UI
+cd demo-lab-react && npm install && npm run build
 ```
 
-See [`docs/CINEFORGE_BRIDGE.md`](docs/CINEFORGE_BRIDGE.md) for the full pipeline and API details.
+## Roadmap
 
-## MoneyPrinterTurbo Integration
+- [ ] Research-to-story portfolio E2E harness
+- [ ] Vault import and Obsidian handoff polish
+- [ ] CineForge live API push and review sync
 
-lookBOOK embeds [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo) as a submodule under `tools/moneyprinter/` for short-form stock-footage generation from book excerpts.
+## Support & consulting
 
-### One-command setup
+Need deterministic AI systems with full traceability? LumenHelix builds reversible computation kernels, governance layers, and end-to-end AI integrations.
 
-```bash
-# Unix / macOS
-./scripts/init-moneyprinter.sh
-
-# Windows
-scripts\init-moneyprinter.bat
-```
-
-### Configuration
-
-Project-specific defaults live in `config/moneyprinter.toml`. It disables voiceover and targets 15-second clips by default. Copy or symlink it to `tools/moneyprinter/config.toml` to activate.
-
-### Using the bridge
-
-```python
-from tools.shared.mpt_bridge import get_bridge
-
-bridge = get_bridge()
-task = bridge.start_task(
-    video_subject="A dragon landing on a castle tower",
-    target_duration=15,
-    voice_name="",
-    subtitle_enabled=False,
-)
-print(task["task_id"])
-```
-
-Start the MPT API server locally:
-
-```bash
-cd tools/moneyprinter && python main.py
-```
-
-## Demo
-
-See `examples/vector-bay7/` for original keyframes and a true-animation prompt pack.
+- **Website:** https://lumenhelix.com
+- **Services:** AI diagnostics, B.Y.O. support packages, governance audits
+- **Research:** TEN² kernel, R.U.B.I.C. boundary discipline, C.O.R.E. constraint lens
 
 ## License
 
-MIT for the software. Imported books, scans, artwork, voices, fonts, and generated assets have their own rights considerations.
+Released under the MIT License. Imported books, scans, artwork, voices, fonts, and generated assets have their own rights considerations.
+
+---
+
+<p align="center">
+  <sub>Engineered by <a href="https://lumenhelix.com">LumenHelix Solutions</a> — Applied Symbolic Dynamics & Reversible Computation.</sub>
+</p>

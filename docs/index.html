@@ -1,392 +1,193 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<title>lookBOOK — Book-to-Animation Compiler</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="lookBOOK is an open-source book-to-animation compiler. Extract comic panels, OCR text, track characters, build scene graphs, and export to Runway, Veo, Kling, ComfyUI, FFmpeg, and Remotion.">
-<style>
-:root{--portfolio-accent:#ffb042;--portfolio-surface:#12100e;--portfolio-text:#f5e6d0;--portfolio-muted:rgba(245,230,208,0.55);--lb-accent:var(--portfolio-accent);--lb-surface:var(--portfolio-surface);--lb-text:var(--portfolio-text);--lb-muted:var(--portfolio-muted);--bg:#04070c;--surface:#0a0e17;--card:#111723;--border:#1a2240;--text:var(--lb-text);--muted:var(--lb-muted);--accent:var(--lb-accent);--gold:#f2ba46;--pink:#f472b6;--purple:#a78bfa;--radius:14px;--font:'Inter','SF Pro','Segoe UI',system-ui,sans-serif;--mono:'JetBrains Mono','Fira Code','SF Mono',monospace}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.7;font-size:15px}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-
-/* Nav */
-nav{position:sticky;top:0;z-index:100;background:rgba(4,7,12,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;gap:28px;height:56px}
-nav .logo{font-weight:800;font-size:17px;letter-spacing:-.3px}
-nav .logo span{color:var(--accent)}
-nav a{color:var(--muted);font-size:14px;font-weight:500;transition:color .15s}
-nav a:hover{color:var(--text);text-decoration:none}
-
-/* Hero */
-.hero{text-align:center;padding:100px 40px 80px;background:radial-gradient(ellipse at 50% 0%, rgba(26,224,207,.06) 0%, transparent 60%)}
-.hero h1{font-size:52px;font-weight:800;letter-spacing:-1.5px;line-height:1.15}
-.hero h1 span{color:var(--accent)}
-.hero p{color:var(--muted);font-size:19px;max-width:680px;margin:20px auto}
-.hero .badge{display:inline-block;border:1px solid var(--accent);color:var(--accent);border-radius:99px;padding:4px 14px;font-size:12px;font-weight:600;margin-bottom:20px}
-.hero .buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;font-weight:700;font-size:15px;transition:all .15s;border:0;cursor:pointer}
-.btn-primary{background:var(--accent);color:#04070c}
-.btn-primary:hover{background:#2cf0df;transform:translateY(-1px)}
-.btn-secondary{background:var(--card);color:var(--text);border:1px solid var(--border)}
-.btn-secondary:hover{border-color:var(--accent);transform:translateY(-1px)}
-
-/* Container */
-.container{max-width:1120px;margin:0 auto;padding:0 40px}
-
-/* Sections */
-section{padding:70px 0;border-bottom:1px solid var(--border)}
-section:last-child{border-bottom:0}
-section h2{font-size:30px;font-weight:700;letter-spacing:-.5px;margin-bottom:12px}
-section h2 .highlight{color:var(--accent)}
-section .subtitle{color:var(--muted);font-size:16px;margin-bottom:40px;max-width:640px}
-
-/* Feature Grid */
-.feature-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
-.feature-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s}
-.feature-card:hover{border-color:var(--accent)}
-.feature-card .icon{font-size:28px;margin-bottom:10px}
-.feature-card h3{font-size:16px;font-weight:700;margin-bottom:6px}
-.feature-card p{color:var(--muted);font-size:13px;line-height:1.5}
-
-/* CLI Commands */
-.cmd-group{margin-bottom:32px}
-.cmd-group h3{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px}
-.cmd-list{list-style:none}
-.cmd-list li{display:flex;align-items:baseline;gap:12px;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;font-size:14px}
-.cmd-list li .cmd{font-family:var(--mono);color:var(--gold);font-weight:600;white-space:nowrap}
-.cmd-list li .desc{color:var(--muted)}
-.cmd-list li .arrow{color:var(--muted);font-size:12px}
-
-/* Pipeline */
-.pipeline-flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;padding:20px 0}
-.pipeline-flow .node{padding:10px 18px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:13px;font-weight:600;text-align:center;min-width:100px}
-.pipeline-flow .node.accent{border-color:var(--accent);color:var(--accent)}
-.pipeline-flow .node.gold{border-color:var(--gold);color:var(--gold)}
-.pipeline-flow .node.pink{border-color:var(--pink);color:var(--pink)}
-.pipeline-flow .arrow-node{color:var(--muted);font-size:18px;padding:0 4px}
-
-/* Export Table */
-.export-table{width:100%;border-collapse:collapse;margin-top:16px}
-.export-table th{text-align:left;padding:12px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);border-bottom:1px solid var(--border)}
-.export-table td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:14px}
-.export-table td:first-child{font-family:var(--mono);font-weight:600;color:var(--gold)}
-.export-table tr:last-child td{border-bottom:0}
-
-/* Code block */
-.code-block{background:#080b14;border:1px solid var(--border);border-radius:12px;padding:16px 20px;font-family:var(--mono);font-size:13px;overflow-x:auto;margin:12px 0;line-height:1.6;color:var(--text)}
-.code-block .comment{color:var(--muted)}
-.code-block .kw{color:var(--accent)}
-
-/* Footer */
-footer{text-align:center;padding:40px;color:var(--muted);font-size:13px}
-footer a{color:var(--accent)}
-
-/* Responsive */
-@media(max-width:720px){.hero h1{font-size:32px}.hero{padding:60px 20px}.container{padding:0 20px}nav{padding:0 20px;gap:14px}nav a{font-size:12px}}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOOKbook — LumenHelix Solutions</title>
+  <meta name="description" content="LOOKbook by LumenHelix — turn books, comics, and illustrated pages into structured true-animation handoff packets for image-to-video pipelines.">
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+  <header class="site-header">
+    <div class="container">
+      <a class="brand" href="https://lumenhelix.com" target="_blank" rel="noopener">
+        <img src="assets/logo.svg" alt="LumenHelix">
+        <span>LumenHelix</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="#install">Install</a>
+        <a href="#features">Features</a>
+        <a href="#docs">Docs</a>
+        <a href="https://lumenhelix.com" target="_blank" rel="noopener">lumenhelix.com</a>
+      </nav>
+      <button class="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
 
-<nav>
-<div class="logo">look<span>BOOK</span></div>
-<a href="#overview">Overview</a>
-<a href="#pipeline">Pipeline</a>
-<a href="#commands">CLI</a>
-<a href="#choreography">Choreography</a>
-<a href="#exports">Exports</a>
-<a href="#demo">Demo Lab</a>
-<a href="#install">Install</a>
-</nav>
+  <main>
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true">
+        <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="hx" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00D4FF" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#7C3AED" stop-opacity="0.3"/>
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#hx)" stroke-width="1.5">
+            <path d="M200,20 Q300,100 200,200 Q100,300 200,380">
+              <animate attributeName="d" dur="20s" repeatCount="indefinite"
+                values="M200,20 Q300,100 200,200 Q100,300 200,380;M200,20 Q100,100 200,200 Q300,300 200,380;M200,20 Q300,100 200,200 Q100,300 200,380"/>
+            </path>
+            <path d="M200,20 Q300,100 200,200 Q100,300 200,380" transform="rotate(180 200 200)" opacity="0.5">
+              <animate attributeName="d" dur="20s" repeatCount="indefinite"
+                values="M200,20 Q300,100 200,200 Q100,300 200,380;M200,20 Q100,100 200,200 Q300,300 200,380;M200,20 Q300,100 200,200 Q100,300 200,380"/>
+            </path>
+          </g>
+          <circle cx="200" cy="200" r="160" stroke="#1E293B" stroke-width="1" fill="none" opacity="0.5"/>
+          <circle cx="200" cy="200" r="120" stroke="#1E293B" stroke-width="1" fill="none" opacity="0.35"/>
+        </svg>
+      </div>
 
-<section class="hero">
-<div class="badge">v0.2.0 &middot; Open Source &middot; MIT</div>
-<h1>From <span>Comic Page</span> to<br>Animation in One Pipeline</h1>
-<p>lookBOOK is an open-source book-to-animation compiler. Upload a comic page or archive, and it extracts panels, OCRs text, tracks characters, builds scene graphs, and exports to every major video platform.</p>
-<div class="buttons">
-<a href="#install" class="btn btn-primary">Get Started</a>
-<a href="#demo" class="btn btn-secondary">Demo Lab</a>
-<a href="https://github.com/affaan-m/ECC" class="btn btn-secondary" target="_blank">ECC Integration</a>
-</div>
-</section>
+      <div class="container">
+        <div class="badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+          LumenHelix Portfolio
+        </div>
+        <h1>Books to true animation. Scene intent preserved.</h1>
+        <p class="lead">Extract characters, build scene intent graphs, and generate image-to-video handoff packets for Runway, Veo, Kling, and local stacks.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#install">Install LOOKbook</a>
+          <a class="btn btn-secondary" href="https://github.com/lumenhelixsolutions/LOOKbook" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+      </div>
+    </section>
 
-<div class="container">
+    <section id="features">
+      <div class="container">
+        <div class="section-header">
+          <h2>What LOOKbook gives you</h2>
+          <p>LOOKBOOK closes the gap between a source page and a generative video pipeline.</p>
+        </div>
+        <div class="card-grid">
+          <article class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <h3>Source analysis</h3>
+            <p>Ingest books, comics, and illustrated pages and break them into panels, characters, and scene intent.</p>
+          </article>
+          <article class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M3 9h18M9 21V9"/>
+            </svg>
+            <h3>True animation standard</h3>
+            <p>Distinguish motion-comic previews from real animation where bodies, limbs, cloth, and dialogue timing matter.</p>
+          </article>
+          <article class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <h3>Image-to-video handoff</h3>
+            <p>Export structured shot packets ready for Runway, Veo, Kling, Pika, Luma, and local image-to-video stacks.</p>
+          </article>
+          <article class="card">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <h3>Demo Lab Gen 2</h3>
+            <p>A unified pipeline server with OCR, vision interpretation, and a browser review UI on port 8042.</p>
+          </article>
+        </div>
+      </div>
+    </section>
 
-<!-- Overview -->
-<section id="overview">
-<h2><span class="highlight">End-to-End</span> Pipeline</h2>
-<p class="subtitle">From raw comic pages to platform-ready animation exports in a single command.</p>
-<div class="feature-grid">
-<div class="feature-card">
-<div class="icon">&#128452;</div>
-<h3>Panel Detection</h3>
-<p>OpenCV-based contour detection segments pages into individual panels, ordered by Western reading direction (top→bottom, left→right).</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128221;</div>
-<h3>OCR Extraction</h3>
-<p>Tesseract-powered text extraction with comic-specific preprocessing. Classifies text as dialogue, narration, SFX, or caption automatically.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128100;</div>
-<h3>Character Tracking</h3>
-<p>Perceptual hashing tracks character appearances across panels and pages, building consistency sheets for animation handoff.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127916;</div>
-<h3>Scene &amp; Shot Graphs</h3>
-<p>Scene graphs group panels by dialogue continuity and character presence. Shot graphs generate timed camera moves, transitions, and motion directives.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127908;</div>
-<h3>M7 Choreography Pipeline</h3>
-<p><code>build-choreography</code> links OCR dialogue to panels and speakers. Shot graphs emit one shot per choreography line; living-panels HTML and CineForge ingest bridge the review handoff.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127760;</div>
-<h3>Multi-Platform Export</h3>
-<p>Export to Runway ML, Veo 2, Kling, Pika, Luma, ComfyUI, FFmpeg, and Remotion — each with platform-optimized prompts and workflows.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128230;</div>
-<h3>Batch Archive Processing</h3>
-<p>Process entire CBZ/CBR comic archives in one command. Extracts every page, runs the full pipeline, and produces all exports.</p>
-</div>
-</div>
-</section>
+    <section id="install" style="background: var(--lh-surface);">
+      <div class="container">
+        <div class="section-header">
+          <h2>Install in seconds</h2>
+          <p>Cross-platform commands for macOS, Linux, Windows, and WSL.</p>
+        </div>
+        <div class="install-tabs">
+          <div class="tab-list" role="tablist" id="install-tabs" aria-label="Install commands">
+            <button class="tab-btn" role="tab" id="install-tabs-0" aria-selected="true" aria-controls="panel-macos" tabindex="0">macOS / Linux</button>
+            <button class="tab-btn" role="tab" id="install-tabs-1" aria-selected="false" aria-controls="panel-windows" tabindex="-1">Windows (PowerShell)</button>
+            <button class="tab-btn" role="tab" id="install-tabs-2" aria-selected="false" aria-controls="panel-wsl" tabindex="-1">Git Bash / WSL</button>
+          </div>
+          <div class="tab-panel" id="panel-macos" role="tabpanel" aria-labelledby="install-tabs-0" aria-hidden="false">
+            <div class="terminal"><pre>python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo</pre></div>
+          </div>
+          <div class="tab-panel" id="panel-windows" role="tabpanel" aria-labelledby="install-tabs-1" aria-hidden="true">
+            <div class="terminal"><pre>python -m venv .venv
+.venv\Scripts\pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo</pre></div>
+          </div>
+          <div class="tab-panel" id="panel-wsl" role="tabpanel" aria-labelledby="install-tabs-2" aria-hidden="true">
+            <div class="terminal"><pre>python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo</pre></div>
+          </div>
+        </div>
+        <p class="text-center mt-2" style="font-size: 0.875rem;">Tested on Windows 11, macOS Sonoma, Ubuntu 22.04/24.04, and modern mobile browsers.</p>
+      </div>
+    </section>
 
-<!-- Pipeline -->
-<section id="pipeline">
-<h2>Data <span class="highlight">Flow</span></h2>
-<p class="subtitle">How a comic page becomes an animation export.</p>
-<div class="pipeline-flow">
-<span class="node accent">Source Image</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node">Panel Detection</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node">OCR Text</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node">Characters</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node gold">Scene Graph</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node">Choreography</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node pink">Shot Graph</span>
-<span class="arrow-node">&#10132;</span>
-<span class="node accent">Exports</span>
-</div>
-<div class="code-block">
-<span class="comment"># Full pipeline on a single page</span><br>
-<span class="kw">lookbook</span> detect-panels source.png my_project/<br>
-<span class="kw">lookbook</span> extract-text source.png my_project/<br>
-<span class="kw">lookbook</span> extract-characters source.png my_project/<br>
-<span class="kw">lookbook</span> build-scene-graph my_project/<br>
-<span class="kw">lookbook</span> build-choreography my_project/<br>
-<span class="kw">lookbook</span> build-shot-graph my_project/<br>
-<span class="kw">lookbook</span> export-living-panels my_project/<br>
-<span class="kw">lookbook</span> export-cineforge my_project/
-</div>
-<div class="code-block">
-<span class="comment"># Or batch process an entire archive</span><br>
-<span class="kw">lookbook</span> process-archive my_comic.cbz my_project/
-</div>
-</section>
+    <section id="docs">
+      <div class="container">
+        <div class="section-header">
+          <h2>Documentation</h2>
+          <p>Everything you need to run, extend, and deploy LOOKbook.</p>
+        </div>
+        <ul class="docs-list">
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <a href="https://github.com/lumenhelixsolutions/LOOKbook/blob/main/README.md" target="_blank" rel="noopener">README — quick start &amp; overview</a>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+            <a href="https://github.com/lumenhelixsolutions/LOOKbook" target="_blank" rel="noopener">Source code on GitHub</a>
+          </li>
+          <li>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <a href="https://lumenhelix.com" target="_blank" rel="noopener">LumenHelix Solutions — enterprise AI &amp; governance</a>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </main>
 
-<!-- CLI Commands -->
-<section id="commands">
-<h2>CLI <span class="highlight">Reference</span></h2>
-<p class="subtitle">21 commands across scaffolding, source intelligence, choreography review, and platform exports.</p>
+  <footer class="site-footer">
+    <div class="container">
+      <a class="brand" href="https://lumenhelix.com" target="_blank" rel="noopener">
+        <img src="assets/logo.svg" alt="LumenHelix">
+        <span>LumenHelix Solutions</span>
+      </a>
+      <p>Applied Symbolic Dynamics &amp; Reversible Computation. We build deterministic, traceable AI systems for teams that need governance without lock-in.</p>
+      <div class="footer-cta">
+        <a class="btn btn-primary" href="https://lumenhelix.com" target="_blank" rel="noopener">Visit lumenhelix.com</a>
+      </div>
+    </div>
+  </footer>
 
-<div class="cmd-group">
-<h3>Scaffolding</h3>
-<ul class="cmd-list">
-<li><span class="cmd">lookbook init</span> <span class="arrow">&rarr;</span> <span class="desc">Create a new lookBOOK project</span></li>
-<li><span class="cmd">lookbook analyze-source</span> <span class="arrow">&rarr;</span> <span class="desc">Analyze a source file</span></li>
-<li><span class="cmd">lookbook demo</span> <span class="arrow">&rarr;</span> <span class="desc">Create a demo project</span></li>
-<li><span class="cmd">lookbook install-demo-lab</span> <span class="arrow">&rarr;</span> <span class="desc">Install the demo lab</span></li>
-</ul>
-</div>
-
-<div class="cmd-group">
-<h3>Source Intelligence</h3>
-<ul class="cmd-list">
-<li><span class="cmd">lookbook detect-panels &lt;source&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Detect comic panels</span></li>
-<li><span class="cmd">lookbook extract-text &lt;source&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">OCR text extraction</span></li>
-<li><span class="cmd">lookbook extract-characters &lt;source&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Extract character clusters</span></li>
-<li><span class="cmd">lookbook build-scene-graph &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Group panels into scenes</span></li>
-<li><span class="cmd">lookbook build-shot-graph &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Generate timed animation breakdown (one shot per choreography line)</span></li>
-<li><span class="cmd">lookbook build-choreography &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Speech-driven choreography from OCR + panels</span></li>
-</ul>
-</div>
-
-<div class="cmd-group">
-<h3>Choreography &amp; Review</h3>
-<ul class="cmd-list">
-<li><span class="cmd">lookbook export-living-panels &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Self-contained browser living-panels HTML review</span></li>
-<li><span class="cmd">lookbook export-cineforge &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">CineForge storyboard ingest JSON (optional <code>--push</code>)</span></li>
-</ul>
-</div>
-
-<div class="cmd-group">
-<h3>Platform Exports</h3>
-<ul class="cmd-list">
-<li><span class="cmd">lookbook export-runway &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Runway ML workflow</span></li>
-<li><span class="cmd">lookbook export-veo &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Veo 2 / Gemini prompts</span></li>
-<li><span class="cmd">lookbook export-kling &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Kling, Pika &amp; Luma prompts</span></li>
-<li><span class="cmd">lookbook export-comfyui &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">ComfyUI workflow JSON</span></li>
-<li><span class="cmd">lookbook export-ffmpeg &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">FFmpeg assembly scripts</span></li>
-<li><span class="cmd">lookbook export-remotion &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Remotion TypeScript project</span></li>
-</ul>
-</div>
-
-<div class="cmd-group">
-<h3>Batch &amp; Archive</h3>
-<ul class="cmd-list">
-<li><span class="cmd">lookbook list-pages &lt;archive&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">List pages in CBZ/CBR</span></li>
-<li><span class="cmd">lookbook process-archive &lt;archive&gt; &lt;project&gt;</span> <span class="arrow">&rarr;</span> <span class="desc">Full pipeline on all pages</span></li>
-</ul>
-</div>
-</section>
-
-<!-- M7 Choreography -->
-<section id="choreography">
-<h2>M7 <span class="highlight">Choreography</span> Pipeline</h2>
-<p class="subtitle">Speech-driven review between scene grouping and shot timing — bridges lookBOOK analysis to CineForge living review.</p>
-<div class="feature-grid">
-<div class="feature-card">
-<div class="icon">&#127908;</div>
-<h3>build-choreography</h3>
-<p>Links dialogue and narration to panels, bubble bboxes, inferred speakers, and word lists for browser SpeechSynthesis boundary sync. Output: <code>analysis/choreography.json</code>.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127909;</div>
-<h3>Per-Line Shot Graph</h3>
-<p>When choreography exists, <code>build-shot-graph</code> emits one timed shot per choreography line with camera moves derived from active dialogue — not just per-scene fallbacks.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128444;</div>
-<h3>export-living-panels</h3>
-<p>Self-contained HTML review with panel overlays, voice cast, and line-by-line playback. Default: <code>exports/living_panels/review.html</code>.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127760;</div>
-<h3>export-cineforge</h3>
-<p>Validated shot graph + choreography ingest for CineForge storyboard shots. File export by default; <code>--push --project-id</code> for live API handoff.</p>
-</div>
-</div>
-<div class="code-block">
-<span class="comment"># M7 choreography → living review → CineForge bridge</span><br>
-<span class="kw">lookbook</span> build-choreography my_project/<br>
-<span class="kw">lookbook</span> build-shot-graph my_project/<br>
-<span class="kw">lookbook</span> export-living-panels my_project/<br>
-<span class="kw">lookbook</span> export-cineforge my_project/<br>
-<span class="kw">lookbook</span> export-cineforge my_project/ --push --project-id &lt;cineforge-uuid&gt;
-</div>
-<p style="color:var(--muted);font-size:14px;margin-top:12px">See <a href="CINEFORGE_BRIDGE.md">CINEFORGE_BRIDGE.md</a> for API details and ingest payload schema.</p>
-</section>
-
-<!-- Exports -->
-<section id="exports">
-<h2>Platform <span class="highlight">Exports</span></h2>
-<p class="subtitle">Every export is data-driven from the shot graph, not static templates.</p>
-<table class="export-table">
-<thead><tr><th>Platform</th><th>What It Produces</th><th>How to Use</th></tr></thead>
-<tbody>
-<tr><td>Runway ML</td><td>Gen-3/Gen-4 worklow JSON with per-shot image-to-video job configs</td><td>Import the JSON or use the Runway API</td></tr>
-<tr><td>Veo 2 / Gemini</td><td>Cinematic prose prompt sequences with camera, dialogue, and mood</td><td>Paste prompts into Veo 2 or Gemini</td></tr>
-<tr><td>Kling</td><td>Keyword-optimized prompts for Kling 1.6</td><td>Use in Kling video generation</td></tr>
-<tr><td>Pika</td><td>Scenic, descriptive prompts with emoji-friendly style</td><td>Use in Pika Labs</td></tr>
-<tr><td>Luma</td><td>Structured technical prompts with camera specs</td><td>Use in Luma Dream Machine</td></tr>
-<tr><td>ComfyUI</td><td>Per-shot worklow API JSON, importable via drag-drop</td><td>Load in ComfyUI, connect image input</td></tr>
-<tr><td>FFmpeg</td><td>Batch assembly scripts with file lists and transition support</td><td>Place clip files, run <code>assemble.bat</code></td></tr>
-<tr><td>Remotion</td><td>Full TypeScript project with per-shot React components</td><td><code>npm install && npm start</code></td></tr>
-</tbody>
-</table>
-</section>
-
-<!-- Demo Lab -->
-<section id="demo">
-<h2>Demo <span class="highlight">Lab v2</span></h2>
-<p class="subtitle">Try the full pipeline in your browser — no installation required. Drag a comic page to see panel detection, OCR classification, character tracking, and available exports.</p>
-<div class="feature-grid" style="margin-bottom:20px">
-<div class="feature-card">
-<div class="icon">&#127912;</div>
-<h3>Visual Panel Overlay</h3>
-<p>Detected panels are drawn directly on the image with color-coded bounding boxes and index labels.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128220;</div>
-<h3>OCR Classification</h3>
-<p>Extracted text is color-coded by type: dialogue (accent), SFX (gold), narration (purple), caption (muted).</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#128101;</div>
-<h3>Character Tracking</h3>
-<p>Characters are detected and their panel appearances are tracked with names and panel indices.</p>
-</div>
-<div class="feature-card">
-<div class="icon">&#127760;</div>
-<h3>Multi-Platform Export</h3>
-<p>Pipeline results show which export platforms are available with the current data.</p>
-</div>
-</div>
-<a href="demo-lab/index.html" class="btn btn-primary" target="_blank">Open Demo Lab</a>
-</section>
-
-<!-- Install -->
-<section id="install">
-<h2>Get <span class="highlight">Started</span></h2>
-<p class="subtitle">Install lookBOOK and start processing comic pages in minutes.</p>
-
-<h3 style="font-size:16px;font-weight:700;margin-bottom:8px">Prerequisites</h3>
-<ul style="color:var(--muted);margin-bottom:20px;padding-left:20px">
-<li>Python 3.10+</li>
-<li>Tesseract OCR (optional, for text extraction) — <code>choco install tesseract</code> or your system's package manager</li>
-<li>OpenCV + numpy (optional, for panel detection) — installed automatically with the <code>vision</code> extras</li>
-</ul>
-
-<h3 style="font-size:16px;font-weight:700;margin-bottom:8px">Install</h3>
-<div class="code-block">
-<span class="comment"># Clone and install</span><br>
-git clone https://github.com/your-org/lookBOOK.git<br>
-cd lookBOOK/lookBOOK_true_animation_github_repo<br><br>
-<span class="comment"># Create virtual environment</span><br>
-python -m venv .venv<br>
-source .venv/bin/activate  <span class="comment"># or .venv\Scripts\activate on Windows</span><br><br>
-<span class="comment"># Install with all features</span><br>
-pip install -e ".[image,vision,archive,dev]"
-</div>
-
-<h3 style="font-size:16px;font-weight:700;margin-bottom:8px;margin-top:20px">Quick Start</h3>
-<div class="code-block">
-<span class="comment"># Process a single comic page</span><br>
-lookbook init my_project/<br>
-lookbook analyze-source page.png my_project/<br>
-lookbook detect-panels page.png my_project/<br>
-lookbook extract-text page.png my_project/<br>
-lookbook build-scene-graph my_project/<br>
-lookbook build-shot-graph my_project/<br>
-lookbook export-remotion my_project/<br><br>
-<span class="comment"># Or batch an entire archive</span><br>
-lookbook process-archive comic.cbz my_project/
-</div>
-
-<h3 style="font-size:16px;font-weight:700;margin-bottom:8px;margin-top:20px">Try the Demo Lab</h3>
-<p style="color:var(--muted);margin-bottom:8px">Open the browser-based demo lab to see the pipeline in action:</p>
-<div class="code-block">
-lookbook install-demo-lab ./my-lab/<br>
-<span class="comment"># Then open my-lab/demo-lab/index.html in a browser</span>
-</div>
-</section>
-
-</div>
-
-<footer>
-<p>lookBOOK &middot; Open-source book-to-animation compiler &middot; <a href="https://github.com/affaan-m/ECC" target="_blank">ECC Integration</a> &middot; Built with Python, OpenCV, Tesseract &middot; MIT License</p>
-</footer>
-
+  <script src="assets/main.js"></script>
 </body>
 </html>
