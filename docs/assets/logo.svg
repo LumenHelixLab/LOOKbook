@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="LOOKbook logo">
+  <defs>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="12" fill="url(#logoGrad)"/>
+  <text x="24" y="33" font-family="Space Grotesk, Inter, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF" text-anchor="middle">L</text>
+</svg>

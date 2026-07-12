@@ -1,82 +1,112 @@
-<p align="center"><img src="assets/brand/lookbook-logo-horizontal.svg" alt="lookBOOK logo" width="860"></p>
+# LOOKbook
 
-<p align="center"><strong>Open-source book-to-animation compiler.</strong><br>Extract characters. Preserve scene intent. Generate true image-to-video handoff packets.</p>
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="LOOKbook logo" width="160">
+</p>
 
-<p align="center"><a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-F2C14E.svg"></a> <a href="ROADMAP.md"><img alt="Status" src="https://img.shields.io/badge/status-alpha-1AE0CF.svg"></a> <a href="docs/product/TRUE_ANIMATION_STANDARD.md"><img alt="True Animation" src="https://img.shields.io/badge/standard-true%20animation-7C5CFF.svg"></a></p>
+<h3 align="center">Books to motion.</h3>
 
-## What is lookBOOK?
+<p align="center">Open-source compiler that turns books, comics, and illustrated pages into structured animation projects.</p>
 
-**lookBOOK** is an open-source compiler layer for turning books, comics, illustrated pages, and story material into structured animation projects.
+<p align="center">
+  <a href="https://lumenhelixsolutions.github.io/LOOKbook/">Launch Page</a>
+  <span> · </span>
+  <a href="https://github.com/lumenhelixsolutions/LOOKbook">GitHub</a>
+  <span> · </span>
+  <a href="https://lumenhelix.com">LumenHelix</a>
+</p>
 
-It is not a video model. It is the missing layer between a source page and tools like Runway, Google Flow/Veo, Kling, Pika, Luma, or local generation stacks.
+---
 
-```text
-book / comic / illustrated page
-→ source analysis
-→ character extraction
-→ scene intent graph
-→ shot list
-→ dialogue + sound script
-→ true image-to-video handoff packet
-→ generated animated shots
-```
+LOOKbook is the LumenHelix open-source compiler for turning books, comics, and illustrated pages into structured animation projects. It extracts characters, preserves scene intent, and emits true image-to-video handoff packets for generative video pipelines.
 
-## The core standard
+## Why LOOKbook
 
-lookBOOK is built around one hard distinction:
-
-```text
-Motion-comic preview:
-  zooms, pans, overlays, particles, still-image movement
-
-True animation:
-  characters move inside the scene
-  bodies and limbs act
-  enemies react
-  cloth/scarf/ribbon moves independently
-  dialogue timing matters
-```
-
-**Not a slideshow. Real animation planning.**
+- **Preserve creative intent.** Scene graphs and character consistency keep the story coherent across every generated shot.
+- **Stay pipeline-agnostic.** Export to Runway, Veo, Kling, Pika, Luma, or local stacks from one source of truth.
+- **Own your workflow.** Local-first Python CLI and browser lab. No mandatory cloud, no lock-in.
 
 ## Quick start
 
+### macOS / Linux
+
 ```bash
-git clone https://github.com/your-org/lookBOOK.git
-cd lookBOOK
-python -m venv .venv
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+cd LOOKbook
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[dev,image]"
+pip install -e ".[lab,dev]"
+npm install
 lookbook demo my-demo
-lookbook true-animation-packet my-demo --target runway
-lookbook export-web my-demo my-demo/exports/review.html
 ```
 
-## Browser Demo Lab
+### Windows (PowerShell)
 
-Open `demo-lab/index.html`, or run:
+```powershell
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+Set-Location LOOKbook
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo
+```
+
+### Windows (Git Bash / WSL)
 
 ```bash
-python scripts/run_demo_lab.py
+git clone https://github.com/lumenhelixsolutions/LOOKbook.git
+cd LOOKbook
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[lab,dev]"
+npm install
+lookbook demo my-demo
 ```
 
-The lab lets users drop in a page or keyframe and generate a true-animation handoff packet locally.
+> Tested on Windows 11, macOS Sonoma, Ubuntu 22.04/24.04, and modern mobile browsers.
 
-## CLI
+## Features
+
+| Feature | What it gives you |
+|---------|-------------------|
+| Source analysis | Ingest books, comics, and illustrated pages and break them into panels, characters, and scene intent. |
+| True animation standard | Distinguish motion-comic previews from real animation where bodies, limbs, cloth, and dialogue timing matter. |
+| Image-to-video handoff | Export structured shot packets ready for Runway, Veo, Kling, Pika, Luma, and local image-to-video stacks. |
+| Demo Lab Gen 2 | A unified pipeline server with OCR, vision interpretation, and a browser review UI on port 8042. |
+
+## Architecture
+
+```
+lookBOOK/
+├── lookbook/       Python CLI + analysis engine
+├── demo-lab/       Browser review lab (port 8042)
+├── demo-lab-react/ Ant Design UI
+├── examples/       Sample keyframes and prompt packs
+└── tools/          MoneyPrinterTurbo bridge
+```
+
+## Development
 
 ```bash
-lookbook init my-project --name "My Animated Book"
-lookbook analyze-source page.png my-project
-lookbook true-animation-packet my-project --target runway
-lookbook true-animation-packet my-project --target veo
-lookbook export-web my-project my-project/exports/review.html
-lookbook install-demo-lab ./lab-output
+# Start the unified pipeline lab
+python -m lookbook.lab_server
+# In another terminal, build the React UI
+cd demo-lab-react && npm install && npm run build
 ```
 
-## Demo
+## Roadmap
 
-See `examples/vector-bay7/` for original keyframes and a true-animation prompt pack.
+- [ ] Research-to-story portfolio E2E harness
+- [ ] Vault import and Obsidian handoff polish
+- [ ] CineForge live API push and review sync
 
 ## License
 
-MIT for the software. Imported books, scans, artwork, voices, fonts, and generated assets have their own rights considerations.
+Released under the MIT License. Imported books, scans, artwork, voices, fonts, and generated assets have their own rights considerations.
+
+---
+
+<p align="center">
+  <sub>LOOKbook is a <a href="https://lumenhelix.com">LumenHelix</a> project — Applied Symbolic Dynamics & Reversible Computation.</sub>
+</p>
